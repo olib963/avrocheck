@@ -1,0 +1,41 @@
+{
+  "type": "record",
+  "name": "CompositeTypes",
+  "namespace": "olib963.test",
+  "fields": [
+    {
+      "name": "enum",
+      "type": {
+        "type": "enum",
+        "name": "fooEnum",
+        "symbols": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "name": "fixed",
+      "type": {
+        "type": "fixed",
+        "name": "fooFixed",
+        "size": 15
+      }
+    },
+    {
+      "name": "longArray",
+      "type": {
+        "type": "array",
+        "items": "long"
+      }
+    },
+    {
+      "name": "stringMap",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    }
+  ]
+}

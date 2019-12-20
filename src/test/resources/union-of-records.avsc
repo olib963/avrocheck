@@ -1,0 +1,36 @@
+[
+  {
+    "type": "record",
+    "name": "Foo",
+    "namespace": "olib963.test",
+    "fields": [
+      {
+        "name": "boolean",
+        "type": "boolean"
+      },
+      {
+        "name": "int",
+        "type": "int"
+      }
+    ]
+  },
+  {
+    "type": "record",
+    "name": "Bar",
+    "namespace": "olib963.test",
+    "fields": [
+      {
+        "name": "double",
+        "type": "double"
+      },
+      {
+        "name": "string",
+        "type": "string"
+      },
+      {
+        "name": "null",
+        "type": "null"
+      }
+    ]
+  }
+]

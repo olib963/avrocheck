@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "PrimitiveUnionTypes",
+  "namespace": "olib963.test",
+  "fields": [
+    {
+      "name": "nullableInt",
+      "type": ["null", "int"]
+    },
+    {
+      "name": "stringOrLong",
+      "type": ["string", "long"]
+    }
+  ]
+}

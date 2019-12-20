@@ -1,0 +1,69 @@
+{
+  "type": "record",
+  "name": "LogicalTypes",
+  "namespace": "olib963.test",
+  "fields": [
+    {
+      "name": "uuid",
+      "type": {
+        "type": "string",
+        "logicalType": "uuid"
+      }
+    },
+    {
+      "name": "timestampMillis",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    },
+    {
+      "name": "timestampMicros",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-micros"
+      }
+    },
+    {
+      "name": "timeMicros",
+      "type": {
+        "type": "long",
+        "logicalType": "time-micros"
+      }
+    },
+    {
+      "name": "decimalFixed",
+      "type": {
+        "name": "Fixed",
+        "type": "fixed",
+        "size": 4,
+        "logicalType": "decimal",
+        "scale": 4,
+        "precision": 7
+      }
+    },
+    {
+      "name": "decimal",
+      "type": {
+        "type": "bytes",
+        "logicalType": "decimal",
+        "scale": 4,
+        "precision": 7
+      }
+    },
+    {
+      "name": "timeMillis",
+      "type": {
+        "type": "int",
+        "logicalType": "time-millis"
+      }
+    },
+    {
+      "name": "date",
+      "type": {
+        "type": "int",
+        "logicalType": "date"
+      }
+    }
+  ]
+}

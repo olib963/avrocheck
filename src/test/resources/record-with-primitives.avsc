@@ -1,0 +1,40 @@
+{
+  "type": "record",
+  "name": "PrimitiveTypes",
+  "namespace": "olib963.test",
+  "fields": [
+    {
+      "name": "boolean",
+      "type": "boolean"
+    },
+    {
+      "name": "double",
+      "type": "double"
+    },
+
+    {
+      "name": "float",
+      "type": "float"
+    },
+    {
+      "name": "long",
+      "type": "long"
+    },
+    {
+      "name": "bytes",
+      "type": "bytes"
+    },
+    {
+      "name": "string",
+      "type": "string"
+    },
+    {
+      "name": "int",
+      "type": "int"
+    },
+    {
+      "name": "null",
+      "type": "null"
+    }
+  ]
+}

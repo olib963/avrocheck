@@ -15,5 +15,7 @@ jobs:
       - save_cache:
           paths:
             - ~/.m2
+            - ~/.ivy2/cache
+            - ~/.sbt # Cache SBT Compiler interface
           key: v1-dependencies--{{ checksum "build.sbt" }}
       - run: sbt test

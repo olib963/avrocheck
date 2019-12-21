@@ -36,11 +36,9 @@ trait SchemaGeneratorSuite extends Suite with AvroCheck {
   def recordsShouldMatch(generated: Option[GenericRecord], expected: GenericRecord, expectedSchema: Schema = schema): Assertion = generated match {
     case None => () => AssertionResult.failure("No record was generated") // TODO more explicit failure function
     case Some(record) =>
-      that("The schema should be the expected one", record.getSchema, isEqualTo(expectedSchema))
-      for (field <- expectedSchema.getFields.asScala.map(_.name())) {
-        that(s"The field $field should match", record.get(field), isEqualTo(expected.get(field)))
-      }
-      pending("Need to make this a composite assertion")
+      val fieldAssertions = expectedSchema.getFields.asScala.map(_.name()).map(field =>
+        that(s"The field $field should match", record.get(field), isEqualTo(expected.get(field))))
+      all(that("The schema should be the expected one", record.getSchema, isEqualTo(expectedSchema)) +: fieldAssertions)
   }
 
 

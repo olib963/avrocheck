@@ -48,7 +48,7 @@ trait AvroCheck {
     case Type.MAP => mapGenerator(schema, configuration, overrides, preserialiseLogicalTypes)
     case Type.UNION => unionGenerator(schema, configuration, overrides, preserialiseLogicalTypes)
     case Type.RECORD => recordGenerator(schema, configuration, overrides, preserialiseLogicalTypes)
-  }a
+  }
 
   private def nullGenerator(overrides: Overrides): Try[Gen[Null]] = overrides match {
     case NoOverrides | ConstantOverride(null) => Success(Gen.const(null))

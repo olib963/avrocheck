@@ -136,7 +136,7 @@ object CompositeSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
             that(Try(genFromSchema(schema)), isFailure[Gen[GenericRecord]])
           }
           smallAssertion.and(bigAssertion)
-        },
+        }
       ),
       suite("Valid Overrides",
         test("should let you select a specific enum") {

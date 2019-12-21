@@ -11,11 +11,11 @@ jobs:
             - v1-dependencies-{{ checksum "build.sbt" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
-      - run: sbt test:compile
+      - run: sbt +test:compile
       - save_cache:
           paths:
             - ~/.m2
             - ~/.ivy2/cache
             - ~/.sbt # Cache SBT Compiler interface
           key: v1-dependencies--{{ checksum "build.sbt" }}
-      - run: sbt test
+      - run: sbt +test

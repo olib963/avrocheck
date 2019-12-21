@@ -24,7 +24,7 @@ import scala.util.{Failure, Success, Try}
 trait AvroCheck {
 
   def schemaFromResource(schemaResource: String): Schema =
-    new Schema.Parser().parse(Source.fromResource(schemaResource).mkString)
+    new Schema.Parser().parse(SourceReader.readSource(schemaResource))
 
   // TODO better way to express failure that exceptions?
   def genFromSchema(schema: Schema, preserialiseLogicalTypes: Boolean = false)(implicit configuration: Configuration, overrides: Overrides): Gen[GenericRecord] = schema.getType match {

@@ -34,7 +34,11 @@ trait SchemaGeneratorSuite extends Suite with AvroCheck {
   import io.github.olib963.javatest_scala._
 
   def recordsShouldMatch(generated: Option[GenericRecord], expected: GenericRecord, expectedSchema: Schema = schema): Assertion = generated match {
-    case None => () => AssertionResult.failure("No record was generated") // TODO more explicit failure function
+    case None =>
+      // Using new anonymous class due to scala 2.11 not handling () => result properly
+      new Assertion { // TODO more explicit failure function
+      override def run(): AssertionResult = AssertionResult.failure("No record was generated")
+    }
     case Some(record) =>
       val fieldAssertions = expectedSchema.getFields.asScala.map(_.name()).map(field =>
         that(s"The field $field should match", record.get(field), isEqualTo(expected.get(field))))

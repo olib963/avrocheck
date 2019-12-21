@@ -26,6 +26,7 @@ trait AvroCheck {
   def schemaFromResource(schemaResource: String): Schema =
     new Schema.Parser().parse(Source.fromResource(schemaResource).mkString)
 
+  // TODO better way to express failure that exceptions?
   def genFromSchema(schema: Schema, preserialiseLogicalTypes: Boolean = false)(implicit configuration: Configuration, overrides: Overrides): Gen[GenericRecord] = schema.getType match {
     case Type.RECORD => recordGenerator(schema, configuration, overrides, preserialiseLogicalTypes).get
     case Type.UNION if schema.getTypes.asScala.forall(_.getType == Type.RECORD) =>

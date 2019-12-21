@@ -7,9 +7,8 @@ scalaVersion := "2.12.8"
 val scalacheckVersion = "1.14.0"
 
 libraryDependencies ++= Seq(
-  "org.scalacheck" %% "scalacheck" % "1.14.0",
-  "org.apache.avro" % "avro" % "1.8.2",
-  "org.scalatest" %% "scalatest" % "3.0.5" % Test
+  "org.scalacheck" %% "scalacheck" % scalacheckVersion,
+  "org.apache.avro" % "avro" % "1.8.2"
 )
 
 javatestScalacheckVersion := Some(scalacheckVersion)

@@ -2,49 +2,75 @@ package io.github.olib963.avrocheck
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.ByteBuffer
-import java.time.Instant
 
+import io.github.olib963.javatest_scala.scalacheck.PropertyAssertions
+import io.github.olib963.javatest_scala.{AllJavaTestSyntax, Suite}
 import org.apache.avro.Conversions.{DecimalConversion, UUIDConversion}
 import org.apache.avro.Schema
 import org.apache.avro.generic._
 import org.apache.avro.io.{Decoder, DecoderFactory, EncoderFactory}
-import org.scalacheck.{Arbitrary, Gen}
-import org.scalatest.{FunSpec, Matchers}
-import org.scalatest.prop.PropertyChecks
 
 import scala.util.{Success, Try}
 
-class RoundTripSpec extends FunSpec with AvroCheck with PropertyChecks with Matchers {
+object RoundTripTests extends Suite with AvroCheck with AllJavaTestSyntax with PropertyAssertions {
 
-  describe("Schema Generators") {
-    it("should generate records with primitives that can be serialised") {
-      forAll(genFromSchema(schemaFromResource("record-with-primitives.avsc"))) { record =>
-        Try(roundTrip(record)) shouldBe Success(record)
-      }
-    }
-    it("should generate records with composite types that can be serialised") {
-      forAll(genFromSchema(schemaFromResource("record-with-composites.avsc"))) { record =>
-        Try(roundTrip(record)) shouldBe Success(record)
-      }
-    }
-    it("should generate records with logical types that can be serialised") {
-      forAll(genFromSchema(schemaFromResource("record-with-logical-types.avsc"))) { record =>
-        Try(roundTrip(record)) shouldBe Success(record)
-      }
-    }
-    it("should generate records with union types that can be serialised") {
-      forAll(genFromSchema(schemaFromResource("record-with-unions.avsc"))) { record =>
-        Try(roundTrip(record)) shouldBe Success(record)
-      }
-    }
-    it("should generate records of union types that can be serialised") {
-      forAll(genFromSchema(schemaFromResource("union-of-records.avsc"))) { record =>
-        Try(roundTrip(record)) shouldBe Success(record)
-      }
-    }
-  }
+  override def tests = Seq(
+    suite("Standard round trip",
+      test("should generate records with primitives that can be serialised") {
+        forAll(genFromSchema(schemaFromResource("record-with-primitives.avsc"))) { record =>
+          that(Try(roundTripCustomConversions(record)), isEqualTo[Try[GenericRecord]](Success(record)))
+        }
+      },
+      test("should generate records with composite types that can be serialised") {
+        forAll(genFromSchema(schemaFromResource("record-with-composites.avsc"))) { record =>
+          that(Try(roundTripCustomConversions(record)), isEqualTo[Try[GenericRecord]](Success(record)))
+        }
+      },
+      test("should generate records with logical types that can be serialised") {
+        forAll(genFromSchema(schemaFromResource("record-with-logical-types.avsc"))) { record =>
+          that(Try(roundTripCustomConversions(record)), isEqualTo[Try[GenericRecord]](Success(record)))
+        }
+      },
+      test("should generate records with union types that can be serialised") {
+        forAll(genFromSchema(schemaFromResource("record-with-unions.avsc"))) { record =>
+          that(Try(roundTripCustomConversions(record)), isEqualTo[Try[GenericRecord]](Success(record)))
+        }
+      },
+      test("should generate records of union types that can be serialised") {
+        forAll(genFromSchema(schemaFromResource("union-of-records.avsc"))) { record =>
+          that(Try(roundTripCustomConversions(record)), isEqualTo[Try[GenericRecord]](Success(record)))
+        }
+      }),
+    suite("Pre serialised round trip",
+      test("should generate records with primitives that can be serialised") {
+        forAll(genFromSchema(schemaFromResource("record-with-primitives.avsc"), preserialiseLogicalTypes = true)) { record =>
+          that(Try(roundTrip(record)), isEqualTo[Try[GenericRecord]](Success(record)))
+        }
+      },
+      test("should generate records with composite types that can be serialised") {
+        forAll(genFromSchema(schemaFromResource("record-with-composites.avsc"), preserialiseLogicalTypes = true)) { record =>
+          that(Try(roundTrip(record)), isEqualTo[Try[GenericRecord]](Success(record)))
+        }
+      },
+      test("should generate records with logical types that can be serialised") {
+        forAll(genFromSchema(schemaFromResource("record-with-logical-types.avsc"), preserialiseLogicalTypes = true)) { record =>
+          that(Try(roundTrip(record)), isEqualTo[Try[GenericRecord]](Success(record)))
+        }
+      },
+      test("should generate records with union types that can be serialised") {
+        forAll(genFromSchema(schemaFromResource("record-with-unions.avsc"), preserialiseLogicalTypes = true)) { record =>
+          that(Try(roundTrip(record)), isEqualTo[Try[GenericRecord]](Success(record)))
+        }
+      },
+      test("should generate records of union types that can be serialised") {
+        forAll(genFromSchema(schemaFromResource("union-of-records.avsc"), preserialiseLogicalTypes = true)) { record =>
+          that(Try(roundTrip(record)), isEqualTo[Try[GenericRecord]](Success(record)))
+        }
+      }),
 
-  def roundTrip(record: GenericRecord): GenericRecord = {
+  )
+
+  private def roundTripCustomConversions(record: GenericRecord): GenericRecord = {
     val output = new ByteArrayOutputStream()
     val encoder = EncoderFactory.get().binaryEncoder(output, null)
     new GenericDatumWriter[GenericRecord](record.getSchema, Data.genericData).write(record, encoder)
@@ -55,6 +81,17 @@ class RoundTripSpec extends FunSpec with AvroCheck with PropertyChecks with Matc
     NonUTF8Reader(record.getSchema, Data.genericData).read(null, binaryDecoder)
   }
 
+  private def roundTrip(record: GenericRecord): GenericRecord = {
+    val output = new ByteArrayOutputStream()
+    val encoder = EncoderFactory.get().binaryEncoder(output, null)
+    new GenericDatumWriter[GenericRecord](record.getSchema, GenericData.get()).write(record, encoder)
+    encoder.flush()
+
+    val bytes = output.toByteArray
+    val binaryDecoder = DecoderFactory.get.binaryDecoder(new ByteArrayInputStream(bytes), null)
+    NonUTF8Reader(record.getSchema, GenericData.get()).read(null, binaryDecoder)
+  }
+
 }
 
 // Reads strings as Strings not UTF8s. If using the default reader the Map[String, String] in composite types won't be considered equal because it is actually Map[Utf8, Utf8].
@@ -63,7 +100,7 @@ case class NonUTF8Reader(schema: Schema, data: GenericData) extends GenericDatum
 }
 
 object Data {
-  val genericData = {
+  val genericData: GenericData = {
     val d = new GenericData()
     d.addLogicalTypeConversion(new UUIDConversion())
     d.addLogicalTypeConversion(ScalaDecimalConversion)

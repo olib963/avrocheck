@@ -3,24 +3,23 @@ package io.github.olib963.avrocheck
 import java.nio.ByteBuffer
 
 import io.github.olib963.javatest_scala.AllJavaTestSyntax
+import io.github.olib963.javatest_scala.scalacheck.PropertyAssertions
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.scalacheck.Gen.Parameters
 import org.scalacheck.{Arbitrary, Gen}
-import org.scalatest.prop.PropertyChecks
 
 import scala.util.Try
 
-object PrimitiveSchemaTests extends SchemaGeneratorSuite with PropertyChecks with AllJavaTestSyntax {
+object PrimitiveSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax with PropertyAssertions {
   override val schemaFile = "record-with-primitives.avsc"
 
   override def tests =
     Seq(
       test("Schema based generator") {
-        // TODO should this just return the primitive object anyway in an NRC?
+        // TODO should this just return the primitive object anyway in an NRC rather than return a failure?
         forAll(primitiveTypeSchemaGen) { schema =>
           that("Because it should reject all primitive schemas", Try(genFromSchema(schema)), isFailure[Gen[GenericRecord]])
         }
-        pending("I still need to implement a scalacheck function in JT")
       },
       primitiveFieldSuite
     )

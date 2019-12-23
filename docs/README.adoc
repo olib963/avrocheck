@@ -35,11 +35,14 @@ include::../src/test/scala/io/github/olib963/avrocheck/documentation/SerdeProper
 }
 ----
 
-Secondly it can be useful to write high level system property tests in terms of messages in and out.
+Secondly it can be useful to write high level system property tests in terms of messages in and out. As an
+example we will use the above schema to write a very simple application that signs up users with their favorite number.
+If their favourite number is negative we give them a £10 sign up bonus and if it is between -1000 and -2000 we give them double.
 
 [source, scala]
 ----
-// TODO message spec
+include::../src/test/scala/io/github/olib963/avrocheck/documentation/ApplicationProperty.scala[tags=include]
+}
 ----
 
 Due to the compatability features of avro, producers upstream of you should be able to make backwards

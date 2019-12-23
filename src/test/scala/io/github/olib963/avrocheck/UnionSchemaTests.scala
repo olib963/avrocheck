@@ -8,7 +8,6 @@ import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.Gen.Parameters
 
 import scala.util.Try
-import scala.collection.JavaConverters._
 
 object UnionSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax with PropertyAssertions {
   override val schemaFile: String = "union-of-records.avsc"
@@ -16,8 +15,8 @@ object UnionSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
   override def tests = {
     val invalidUnionGen = for {
       invalidSubType <- Gen.oneOf(primitiveTypeSchemaGen, compositeSchemaGen, Seq.empty[Gen[Schema]]: _*)
-      list <- Gen.containerOf[Set, Schema](invalidSubType) // remove duplicates
-    } yield Schema.createUnion(list.toList.asJava)
+      set <- Gen.containerOf[Set, Schema](invalidSubType) // remove duplicates
+    } yield Schema.createUnion(CollectionConverters.toJava(set.toList))
     Seq(
       // TODO should this just return the object anyway in an NRC rather than return a failure?
       test(s"Generator tests")(forAll(invalidUnionGen)(schema =>

@@ -66,8 +66,7 @@ object RoundTripTests extends Suite with AvroCheck with AllJavaTestSyntax with P
         forAll(genFromSchema(schemaFromResource("union-of-records.avsc"), preserialiseLogicalTypes = true)) { record =>
           that(Try(roundTrip(record)), isEqualTo[Try[GenericRecord]](Success(record)))
         }
-      }),
-
+      })
   )
 
   private def roundTripCustomConversions(record: GenericRecord): GenericRecord = {

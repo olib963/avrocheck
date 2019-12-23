@@ -16,7 +16,6 @@ import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.util.Buildable
 
 import scala.io.Source
-import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.math.BigDecimal.RoundingMode
 import scala.util.{Failure, Success, Try}
@@ -29,7 +28,7 @@ trait AvroCheck {
   // TODO better way to express failure that exceptions?
   def genFromSchema(schema: Schema, preserialiseLogicalTypes: Boolean = false)(implicit configuration: Configuration, overrides: Overrides): Gen[GenericRecord] = schema.getType match {
     case Type.RECORD => recordGenerator(schema, configuration, overrides, preserialiseLogicalTypes).get
-    case Type.UNION if schema.getTypes.asScala.forall(_.getType == Type.RECORD) =>
+    case Type.UNION if CollectionConverters.toScala(schema.getTypes).forall(_.getType == Type.RECORD) =>
       unionGenerator(schema, configuration, overrides, preserialiseLogicalTypes).get.map(_.asInstanceOf[GenericRecord])
     case _ => sys.error(s"Can only create generator for records or a union of records, schema is not supported: $schema")
   }
@@ -191,7 +190,7 @@ trait AvroCheck {
 
   private def enumGenerator(schema: Schema, configuration: Configuration, overrides: Overrides): Try[Gen[EnumSymbol]] = {
     val symbolGen = overrides match {
-      case NoOverrides => Success(Gen.oneOf(schema.getEnumSymbols.asScala))
+      case NoOverrides => Success(Gen.oneOf(CollectionConverters.toScala(schema.getEnumSymbols)))
       case ConstantOverride(enum: String) =>
         if (schema.getEnumSymbols.contains(enum))
           Success(Gen.const(enum))
@@ -204,7 +203,7 @@ trait AvroCheck {
 
   private def arrayGenerator(schema: Schema, configuration: Configuration, overrides: Overrides, preserialiseLogicalTypes: Boolean): Try[Gen[java.util.List[Any]]] = {
     val elementGenerator = generatorFromSchema(schema.getElementType, configuration, overrides, preserialiseLogicalTypes)
-    elementGenerator.map(e => Gen.listOf(e).map(_.asJava))
+    elementGenerator.map(e => Gen.listOf(e).map(CollectionConverters.toJava(_: Seq[Any])))
   }
 
   private def mapGenerator(schema: Schema, configuration: Configuration, overrides: Overrides, preserialiseLogicalTypes: Boolean): Try[Gen[java.util.Map[String, Any]]] = {
@@ -215,7 +214,7 @@ trait AvroCheck {
           key <- configuration.stringGen
           value <- v
         } yield key -> value
-        Success(Gen.mapOf(entryGen).map(_.asJava))
+        Success(Gen.mapOf(entryGen).map(CollectionConverters.toJava(_: Map[String, Any])))
       },
       error =>
         Failure(SuppressedStackTrace("Could not create generator for values in the map", error))
@@ -225,7 +224,7 @@ trait AvroCheck {
   private def unionGenerator(schema: Schema, configuration: Configuration, overrides: Overrides, preserialiseLogicalTypes: Boolean): Try[Gen[Any]] =
     overrides match {
       case NoOverrides =>
-        val triedGens = schema.getTypes.asScala.map { schema =>
+        val triedGens = CollectionConverters.toScala(schema.getTypes).map { schema =>
           generatorFromSchema(schema, configuration, NoOverrides, preserialiseLogicalTypes)
             .transform(gen => Success(gen), error => Failure(SuppressedStackTrace(s"Could not create generator for union branch: ${schema.getFullName}", error)))
         }.toList
@@ -235,13 +234,13 @@ trait AvroCheck {
           case Nil => Failure(new RuntimeException(s"Schema: $schema is an empty union, this should be impossible."))
         }
       case SelectedUnion(branch, branchOverrides) =>
-        schema.getTypes.asScala.find(_.getName == branch)
+        CollectionConverters.toScala(schema.getTypes).find(_.getName == branch)
           .fold[Try[Gen[Any]]](Failure(new RuntimeException(s"Could not find branch $branch in schema $schema"))) { branchSchema =>
           generatorFromSchema(branchSchema, configuration, branchOverrides, preserialiseLogicalTypes)
             .transform(gen => Success(gen), error => Failure(SuppressedStackTrace(s"Could not create generator for union branch: ${branchSchema.getFullName}", error)))
         }
       case const: ConstantOverride =>
-        val (gens, errors) = schema.getTypes.asScala.map { schema =>
+        val (gens, errors) = CollectionConverters.toScala(schema.getTypes).map { schema =>
           generatorFromSchema(schema, configuration, const, preserialiseLogicalTypes)
             .transform(gen => Success(gen), error => Failure(SuppressedStackTrace(s"Could not create generator for union branch: ${schema.getFullName}", error)))
         }.toList.foldLeft((Seq.empty[Gen[Any]], Seq.empty[Throwable])) {
@@ -261,7 +260,7 @@ trait AvroCheck {
     val fieldOverridesFunction: Try[String => Overrides] = overrides match {
       case NoOverrides => Success(_ => NoOverrides)
       case KeyOverrides(mapped) =>
-        val schemaFieldNames = schema.getFields.asScala.map(_.name)
+        val schemaFieldNames = CollectionConverters.toScala(schema.getFields).map(_.name)
         val invalidKeys = mapped.keys.filterNot(schemaFieldNames.contains(_))
         if (invalidKeys.isEmpty)
           Success(fieldName => mapped.getOrElse(fieldName, NoOverrides))
@@ -271,7 +270,7 @@ trait AvroCheck {
     }
     fieldOverridesFunction.flatMap { overrideFunction =>
       // Create a generator of (fieldName: String, value: Any)
-      val fieldGens = schema.getFields.asScala
+      val fieldGens = CollectionConverters.toScala(schema.getFields)
         .map(field => generatorFromSchema(field.schema(), configuration, overrideFunction(field.name()), preserialiseLogicalTypes)
           .transform(
             generator => Success(generator.map(field.name() -> _)),
@@ -286,20 +285,7 @@ trait AvroCheck {
     ts.foldRight(Try(Seq.empty[A])) { case (bTry, a) => a.flatMap(as => bTry.map(b => b +: as)) }
 
   case class RecordBuildable(schema: Schema) extends Buildable[(String, Any), GenericRecord] {
-    override def builder = GenericRecordBuilder(schema)
-  }
-
-  case class GenericRecordBuilder(schema: Schema) extends mutable.Builder[(String, Any), GenericRecord] {
-    var record = new GenericData.Record(schema)
-
-    override def +=(elem: (String, Any)): this.type = {
-      record.put(elem._1, elem._2)
-      this
-    }
-
-    override def clear(): Unit = record = new GenericData.Record(schema)
-
-    override def result(): GenericRecord = record
+    override def builder = new GenericRecordBuilder(schema)
   }
 
   private def scale(decimal: Decimal, bigDecimal: BigDecimal): BigDecimal =

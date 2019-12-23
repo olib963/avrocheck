@@ -1,6 +1,9 @@
+aliases:
+  - &dependency-cache v1-dependencies-{{ checksum "build.sbt" }}
+  - &ruby-cache v1-ruby-dependencies-{{ checksum "gendocs.rb" }}
 version: 2
 jobs:
-  build:
+  test:
     docker:
       - image: circleci/openjdk:11-jdk
     working_directory: ~/repo
@@ -8,7 +11,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "build.sbt" }}
+            - *dependency-cache
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
       - run: sbt +test:compile
@@ -17,5 +20,42 @@ jobs:
             - ~/.m2
             - ~/.ivy2/cache
             - ~/.sbt # Cache SBT Compiler interface
-          key: v1-dependencies--{{ checksum "build.sbt" }}
+          key: *dependency-cache
       - run: sbt +test
+
+  docTest:
+    docker:
+      - image: circleci/ruby:2.6.0
+    working_directory: ~/repo
+    environment:
+      GEM_HOME: ~/gems
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          - *ruby-cache
+      - run:
+          name: Install AsciiDoctor
+          command: sudo gem install asciidoctor --conservative
+      - save_cache:
+          key: *ruby-cache
+          paths:
+            - ~/gems
+      - run:
+          name: Test no diff
+          command: |
+            ruby gendocs.rb
+            if [ -z "$(git status --porcelain)" ]; then
+              echo "No changes to documentation"
+            else
+              echo "Documentation has changed, please rerun 'ruby gendocs.rb' and commit the changes"
+              git --no-pager diff
+              exit 1
+            fi
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test
+      - docTest

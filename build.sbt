@@ -5,7 +5,6 @@ version := "0.1.0"
 
 val scala13 = "2.13.1"
 val scala12 = "2.12.10"
-val scala11 = "2.11.12"
 
 scalaVersion := scala12
 val scalacheckVersion = "1.14.0"
@@ -25,7 +24,7 @@ scalacOptions ++= Seq(
   "-unchecked", "-deprecation", "-feature", "-Xfatal-warnings"
 )
 
-crossScalaVersions := Seq(scala11, scala12, scala13)
+crossScalaVersions := Seq(scala12, scala13)
 
 scmInfo := Some(
   ScmInfo(

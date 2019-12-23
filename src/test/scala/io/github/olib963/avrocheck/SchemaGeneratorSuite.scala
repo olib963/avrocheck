@@ -8,8 +8,6 @@ import org.apache.avro.generic.GenericRecord
 import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 
-import scala.collection.JavaConverters._
-
 // Define a few utilities for creating Specs that check the generated output from schemas with fixed specs
 trait SchemaGeneratorSuite extends Suite with AvroCheck {
 
@@ -21,7 +19,7 @@ trait SchemaGeneratorSuite extends Suite with AvroCheck {
     array = Schema.createArray(primitive)
     map = Schema.createMap(primitive)
     schema <- Gen.oneOf(array, map,
-      Schema.createEnum("foo", "bar", "baz", Seq("a", "b", "c").asJava),
+      Schema.createEnum("foo", "bar", "baz", CollectionConverters.toJava(Seq("a", "b", "c"))),
       Schema.createFixed("foo", "bar", "baz", 10))
   } yield schema
 
@@ -31,18 +29,15 @@ trait SchemaGeneratorSuite extends Suite with AvroCheck {
   val firstSeed = Seed(10)
   val secondSeed = Seed(1234567890)
 
+  import CollectionConverters.toScala
   import io.github.olib963.javatest_scala._
 
   def recordsShouldMatch(generated: Option[GenericRecord], expected: GenericRecord, expectedSchema: Schema = schema): Assertion = generated match {
-    case None =>
-      // Using new anonymous class due to scala 2.11 not handling () => result properly
-      new Assertion { // TODO more explicit failure function
-      override def run(): AssertionResult = AssertionResult.failure("No record was generated")
-    }
+    case None => () => AssertionResult.failure("No record was generated") // TODO more explicit failure function
     case Some(record) =>
-      val fieldAssertions = expectedSchema.getFields.asScala.map(_.name()).map(field =>
+      val fieldAssertions = toScala(expectedSchema.getFields).map(_.name()).map(field =>
         that(s"The field $field should match", record.get(field), isEqualTo(expected.get(field))))
-      all(that("The schema should be the expected one", record.getSchema, isEqualTo(expectedSchema)) +: fieldAssertions)
+      all(that("The schema should be the expected one", record.getSchema, isEqualTo(expectedSchema)) +: fieldAssertions.toList)
   }
 
 

@@ -14,14 +14,18 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 
 libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck" % scalacheckVersion,
-  "org.apache.avro" % "avro" % "1.8.2"
+  "org.apache.avro" % "avro" % "1.8.2",
+  "com.sksamuel.avro4s" %% "avro4s-core" % "3.0.4" % Test
 )
 
 javatestScalacheckVersion := Some(scalacheckVersion)
 
 scalacOptions ++= Seq(
   // Fail build on warnings
-  "-unchecked", "-deprecation", "-feature", "-Xfatal-warnings"
+  "-unchecked", "-deprecation", "-feature", "-Xfatal-warnings",
+
+  // Enable higher kinded types
+  "-language:higherKinds"
 )
 
 crossScalaVersions := Seq(scala12, scala13)

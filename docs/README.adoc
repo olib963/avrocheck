@@ -9,6 +9,53 @@ Small library to generate random ``GenericRecord``s from a given avro schema.
 
 == Why?
 
+First of all we always want to make sure that our custom deserialisation code is able to deserialise any message
+using it's reader schema that was written using the _writer schema_.
+
+Example schema:
+
+.UserSchema.avsc
+[source, json]
+----
+include::../src/test/resources/user-schema.avsc[]
+----
+
+An example test to check this using https://github.com/sksamuel/avro4s[avro4s] would be something like:
+
+.User.scala
+[source, scala]
+----
+include::../src/test/scala/io/github/olib963/avrocheck/documentation/User.scala[tags=include]
+----
+
+.SerdeProperty.scala
+[source, scala]
+----
+include::../src/test/scala/io/github/olib963/avrocheck/documentation/SerdeProperty.scala[tags=include]
+}
+----
+
+Secondly it can be useful to write high level system property tests in terms of messages in and out. As an
+example we will use the above schema to write a very simple application that signs up users with their favourite number.
+If their favourite number is negative we give them a £10 sign up bonus and if it is between -1000 and -2000 we give them double.
+
+[source, scala]
+----
+include::../src/test/scala/io/github/olib963/avrocheck/documentation/ApplicationProperty.scala[tags=include]
+}
+----
+
+Due to the compatability features of avro, producers upstream of you should be able to make backwards
+compatible changes without affecting your codebase. It is easy now to verify this by just updating the schema file. For example
+by adding the following:
+
+[source, json]
+----
+include::../src/test/resources/new-user-schema.avsc[tags=new_field, indent=-]
+----
+
+to the above schema, the example tests all still pass.
+
 == How?
 
 Simply extend the `AvroCheck` trait and provide it a schema, there is a utility function to read

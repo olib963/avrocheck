@@ -16,7 +16,6 @@ import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.util.Buildable
 
 import scala.io.Source
-import scala.collection.mutable
 import scala.math.BigDecimal.RoundingMode
 import scala.util.{Failure, Success, Try}
 

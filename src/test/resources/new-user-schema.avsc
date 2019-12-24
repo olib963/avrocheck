@@ -12,7 +12,7 @@
       "type": "int"
     },
     {
-      "name": "favorite_number",
+      "name": "favourite_number",
       "type": [
         "int",
         "null"
@@ -20,7 +20,7 @@
     },
     /* tag::new_field[] */
     {
-      "name": "favorite_color",
+      "name": "favourite_colour",
       "type": [
         "string",
         "null"

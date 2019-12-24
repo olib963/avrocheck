@@ -4,7 +4,7 @@ package io.github.olib963.avrocheck.documentation
 import com.sksamuel.avro4s.{AvroName, AvroSchema, Decoder}
 import org.apache.avro.Schema
 
-case class User(name: String, @AvroName("favorite_number") favoriteNumber: Option[Int])
+case class User(name: String, @AvroName("favourite_number") favouriteNumber: Option[Int])
 
 object User {
   val decoder: Decoder[User] = Decoder[User]

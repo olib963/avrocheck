@@ -9,9 +9,9 @@ object Application {
   private val BONUS = 10
   def processUser(message: GenericRecord): Try[Result] =
     Try(User.decoder.decode(message, User.schema, DefaultFieldMapper)).map {
-      case User(name, Some(favoriteNumber)) if favoriteNumber >= -2000 && favoriteNumber < -1000 =>
+      case User(name, Some(favouriteNumber)) if favouriteNumber >= -2000 && favouriteNumber < -1000 =>
         PersistedWithBonus(name, BONUS * 2)
-      case User(name, Some(favoriteNumber)) if favoriteNumber < 0 =>
+      case User(name, Some(favouriteNumber)) if favouriteNumber < 0 =>
         PersistedWithBonus(name, BONUS)
       case user => Persisted(user.name)
     }

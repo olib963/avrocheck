@@ -9,6 +9,170 @@ Small library to generate random ``GenericRecord``s from a given avro schema.
 
 == Why?
 
+First of all we always want to make sure that our custom deserialisation code is able to deserialise any message
+using it's reader schema that was written using the _writer schema_.
+
+Example schema:
+
+.UserSchema.avsc
+[source, json]
+----
+{
+  "namespace": "example.avro",
+  "type": "record",
+  "name": "User",
+  "fields": [
+    {
+      "name": "name",
+      "type": "string"
+    },
+    {
+      "name": "age",
+      "type": "int"
+    },
+    {
+      "name": "favourite_number",
+      "type": [
+        "int",
+        "null"
+      ]
+    }
+  ]
+}
+----
+
+An example test to check this using https://github.com/sksamuel/avro4s[avro4s] would be something like:
+
+.User.scala
+[source, scala]
+----
+import com.sksamuel.avro4s.{AvroName, AvroSchema, Decoder}
+import org.apache.avro.Schema
+
+case class User(name: String, @AvroName("favourite_number") favouriteNumber: Option[Int])
+
+object User {
+  val decoder: Decoder[User] = Decoder[User]
+  val schema: Schema = AvroSchema[User]
+}
+----
+
+.SerdeProperty.scala
+[source, scala]
+----
+import com.sksamuel.avro4s.DefaultFieldMapper
+import org.scalacheck.{Arbitrary, Properties}
+import org.scalacheck.Prop.forAll
+import io.github.olib963.avrocheck._
+import org.apache.avro.Schema
+
+import scala.util.{Success, Try}
+
+object SerdeProperty extends Properties("Serde") {
+
+  val schema = schemaFromResource("user-schema.avsc")
+
+  property("deserialises user messages") = forAll(genFromSchema(schema)) { record =>
+    Try(User.decoder.decode(record, User.schema, DefaultFieldMapper)).isSuccess
+  }
+
+  // Or if you want to be more precise:
+  property("deserialises user messages with correct values") = {
+    val generator = for {
+      name <- Arbitrary.arbString.arbitrary
+      favNum <- Arbitrary.arbOption[Int].arbitrary
+      favourite_number = favNum.map(Int.box).orNull
+
+      // Notice that here we do not override age (or in the later schema favourite_colour) because these
+      // values are of no interest to our application code
+      overrides = overrideKeys("name" -> name, "favourite_number" -> favourite_number)
+      record <- genFromSchema(schema)(configFromArbitraries, overrides)
+    } yield (record, User(name, favNum))
+    forAll(generator) { case (record, user) =>
+      Try(User.decoder.decode(record, User.schema, DefaultFieldMapper)) == Success(user)
+    }
+  }
+
+}
+----
+
+Secondly it can be useful to write high level system property tests in terms of messages in and out. As an
+example we will use the above schema to write a very simple application that signs up users with their favourite number.
+If their favourite number is negative we give them a £10 sign up bonus and if it is between -1000 and -2000 we give them double.
+
+[source, scala]
+----
+import io.github.olib963.avrocheck._
+import org.scalacheck.Prop.forAll
+import org.scalacheck.{Gen, Properties}
+
+import scala.util.Success
+
+object ApplicationProperty extends Properties("My application") {
+
+  val schema = schemaFromResource("user-schema.avsc")
+
+  property("persists users with negative favourite numbers and gives them a bonus") = {
+    val generator = for {
+      name <- Gen.alphaNumStr
+      // Any number in (-inf, -2001] or [-1000, -1]
+      favNum <- Gen.oneOf(Gen.negNum[Int].map(_ - 2001), Gen.chooseNum[Int](-1000, -1))
+      overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
+      message <- genFromSchema(schema)(configFromArbitraries, overrides)
+    } yield (name, message)
+    forAll(generator) { case (name, message) =>
+      val result = Application.processUser(message)
+      result == Success(PersistedWithBonus(name, 10))
+    }
+  }
+
+  property("gives a double bonus if their favourite number is between -2000 and -1000") = {
+    val generator = for {
+      name <- Gen.alphaNumStr
+      favNum <- Gen.chooseNum[Int](-2000, -1001)
+      overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
+      message <- genFromSchema(schema)(configFromArbitraries, overrides)
+    } yield (name, message)
+    forAll(generator) { case (name, message) =>
+      val result = Application.processUser(message)
+      result == Success(PersistedWithBonus(name, 20))
+    }
+  }
+
+  property("persists users with a positive or no favourite number with no bonus") = {
+    val generator = for {
+      name <- Gen.alphaNumStr
+      favNum <- Gen.oneOf(Gen.const(null), Gen.posNum[Int])
+      overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
+      message <- genFromSchema(schema)(configFromArbitraries, overrides)
+    } yield (name, message)
+    forAll(generator) { case (name, message) =>
+      val result = Application.processUser(message)
+      result == Success(Persisted(name))
+    }
+  }
+
+}
+----
+
+Due to the compatability features of avro, producers upstream of you should be able to make backwards
+compatible changes without affecting your codebase. It is easy now to verify this by just updating the schema file. For example
+by adding the following:
+
+[source, json]
+----
+{
+  "name": "favourite_colour",
+  "type": [
+    "string",
+    "null"
+  ],
+  "deafult": "null"
+}
+----
+
+to the above schema, the example tests all still pass.
+
 == How?
 
 Simply extend the `AvroCheck` trait and provide it a schema, there is a utility function to read

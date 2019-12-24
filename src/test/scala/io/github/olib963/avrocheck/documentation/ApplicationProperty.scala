@@ -16,7 +16,7 @@ object ApplicationProperty extends Properties("My application") {
       name <- Gen.alphaNumStr
       // Any number in (-inf, -2001] or [-1000, -1]
       favNum <- Gen.oneOf(Gen.negNum[Int].map(_ - 2001), Gen.chooseNum[Int](-1000, -1))
-      overrides = overrideKeys("name" -> name, "favorite_number" -> favNum)
+      overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
       message <- genFromSchema(schema)(configFromArbitraries, overrides)
     } yield (name, message)
     forAll(generator) { case (name, message) =>
@@ -29,7 +29,7 @@ object ApplicationProperty extends Properties("My application") {
     val generator = for {
       name <- Gen.alphaNumStr
       favNum <- Gen.chooseNum[Int](-2000, -1001)
-      overrides = overrideKeys("name" -> name, "favorite_number" -> favNum)
+      overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
       message <- genFromSchema(schema)(configFromArbitraries, overrides)
     } yield (name, message)
     forAll(generator) { case (name, message) =>
@@ -42,7 +42,7 @@ object ApplicationProperty extends Properties("My application") {
     val generator = for {
       name <- Gen.alphaNumStr
       favNum <- Gen.oneOf(Gen.const(null), Gen.posNum[Int])
-      overrides = overrideKeys("name" -> name, "favorite_number" -> favNum)
+      overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
       message <- genFromSchema(schema)(configFromArbitraries, overrides)
     } yield (name, message)
     forAll(generator) { case (name, message) =>
@@ -57,7 +57,7 @@ object ApplicationProperty extends Properties("My application") {
       name <- Gen.alphaNumStr
       // Any number in (-inf, -2001] or [-1000, -1]
       favNum <- Gen.oneOf(Gen.negNum[Int].map(_ - 2001), Gen.chooseNum[Int](-1000, -1))
-      overrides = overrideKeys("name" -> name, "favorite_number" -> favNum)
+      overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
       message <- genFromSchema(schemaFromResource("new-user-schema.avsc"))(configFromArbitraries, overrides)
     } yield (name, message)
     forAll(generator) { case (name, message) =>
@@ -70,7 +70,7 @@ object ApplicationProperty extends Properties("My application") {
     val generator = for {
       name <- Gen.alphaNumStr
       favNum <- Gen.chooseNum[Int](-2000, -1001)
-      overrides = overrideKeys("name" -> name, "favorite_number" -> favNum)
+      overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
       message <- genFromSchema(schemaFromResource("new-user-schema.avsc"))(configFromArbitraries, overrides)
     } yield (name, message)
     forAll(generator) { case (name, message) =>
@@ -83,7 +83,7 @@ object ApplicationProperty extends Properties("My application") {
     val generator = for {
       name <- Gen.alphaNumStr
       favNum <- Gen.oneOf(Gen.const(null), Gen.posNum[Int])
-      overrides = overrideKeys("name" -> name, "favorite_number" -> favNum)
+      overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
       message <- genFromSchema(schema)(configFromArbitraries, overrides)
     } yield (name, message)
     forAll(generator) { case (name, message) =>

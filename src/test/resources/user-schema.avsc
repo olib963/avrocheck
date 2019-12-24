@@ -12,7 +12,7 @@
       "type": "int"
     },
     {
-      "name": "favorite_number",
+      "name": "favourite_number",
       "type": [
         "int",
         "null"

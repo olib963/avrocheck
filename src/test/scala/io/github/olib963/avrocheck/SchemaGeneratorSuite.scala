@@ -32,6 +32,7 @@ trait SchemaGeneratorSuite extends Suite with AvroCheck {
   import CollectionConverters.toScala
   import io.github.olib963.javatest_scala._
 
+  // TODO remove option
   def recordsShouldMatch(generated: Option[GenericRecord], expected: GenericRecord, expectedSchema: Schema = schema): Assertion = generated match {
     case None => () => AssertionResult.failure("No record was generated") // TODO more explicit failure function
     case Some(record) =>

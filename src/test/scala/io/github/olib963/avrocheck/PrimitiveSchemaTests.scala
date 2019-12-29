@@ -7,6 +7,7 @@ import io.github.olib963.javatest_scala.scalacheck.PropertyAssertions
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.scalacheck.Gen.Parameters
 import org.scalacheck.{Arbitrary, Gen}
+import org.apache.avro.generic.{GenericRecordBuilder => RecordBuilder}
 
 import scala.util.Try
 
@@ -21,8 +22,30 @@ object PrimitiveSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
           that("Because it should reject all primitive schemas", Try(genFromSchema(schema)), isFailure[Gen[GenericRecord]])
         }
       },
-      primitiveFieldSuite
+      primitiveFieldSuite,
+      fieldSuiteNew
     )
+
+  def fieldSuiteNew = {
+    suite("Generators for records with primitive fields",
+      test("generating a random record with constants in the configuration") {
+        val expectedRecord = new RecordBuilder(schema)
+          .set("boolean", true)
+          .set("double", 3.14159265358979)
+          .set("float", 0.5f)
+          .set("long", 1L)
+          .set("bytes", ByteBuffer.wrap(Array[Byte](1, 2, 3, 4)))
+          .set("string", "hello")
+          .set("int", 8)
+          .set("null", null)
+          .build()
+        forAll(genFromSchema(schema))(r => recordsShouldMatch(Some(r), expectedRecord))
+      },
+      test("Generating a random record with constant overrides")(pending()),
+      test("Generating a random record with generator overrides")(pending()),
+      invalidOverrideSuite,
+    )
+  }
 
   private def primitiveFieldSuite = {
     val expectedForSeed1 = new GenericData.Record(schema)

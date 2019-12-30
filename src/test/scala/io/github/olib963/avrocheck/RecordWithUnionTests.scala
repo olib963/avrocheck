@@ -32,10 +32,9 @@ object RecordWithUnionTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
         val expectedWithOverrides = new GenericData.Record(expectedForSeed1, true)
         expectedWithOverrides.put("nullableInt", null)
         expectedWithOverrides.put("stringOrLong", "}^#HyNhXb\"*sZ<b]>2U8c`lu\\LiC#\"u-0gevpj1A*$2t`uD!|Jd&sTWg'HF`% SCw%P;6s(_4o`yBWk~hC^(JR,:ir}fOXuuXxK")
+        val newConfig = Configuration.Default.copy(stringGen = Gen.asciiPrintableStr)
 
-        implicit val printableStrings: Arbitrary[String] = Arbitrary(Gen.asciiPrintableStr)
-
-        val gen = genFromSchema(schema)
+        val gen = genFromSchema(schema, configuration = newConfig)
         recordsShouldMatch(gen(Parameters.default, firstSeed), expectedWithOverrides)
       },
       test("should not let you select a type that doesn't exist in the union") {

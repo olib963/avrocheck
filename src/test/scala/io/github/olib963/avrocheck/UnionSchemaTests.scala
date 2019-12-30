@@ -46,15 +46,13 @@ object UnionSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
 
         recordsShouldMatch(gen(Parameters.default, secondSeed), expectedForSeed2, expectedSchema = barBranch)
       },
-      test("generating a random record with implicit overrides") {
+      test("generating a random record with changed config") {
         val expectedWithOverrides = new GenericData.Record(expectedForSeed1, true)
         expectedWithOverrides.put("boolean", false)
         expectedWithOverrides.put("int", 23)
 
-        implicit val alwaysFalse: Arbitrary[Boolean] = Arbitrary(Gen.const(false))
-        implicit val positiveInts: Arbitrary[Int] = Arbitrary(Gen.posNum[Int])
-
-        val gen = genFromSchema(schema)
+        val newConfig = Configuration.Default.copy(booleanGen = Gen.const(false), intGen = Gen.posNum[Int])
+        val gen = genFromSchema(schema, configuration = newConfig)
         recordsShouldMatch(gen(Parameters.default, firstSeed), expectedWithOverrides, expectedSchema = fooBranch)
       },
       suite("Invalid overrides",
@@ -70,14 +68,15 @@ object UnionSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
       suite("Valid overrides",
         test("selecting a specific union branch") {
           val overrides = selectNamedUnion("Bar")
-          implicit val alphaNumString: Arbitrary[String] = Arbitrary(Gen.alphaNumStr)
 
           val expectedUnionSelected = new GenericData.Record(barBranch)
           expectedUnionSelected.put("double", 1.99638128080751E10)
           expectedUnionSelected.put("string", "vzqzfoadmfdki9k1ofcrsjmvFuIJuqen")
           expectedUnionSelected.put("null", null)
 
-          val gen = genFromSchema(schema, overrides = overrides)
+          val newConfig = Configuration.Default.copy(stringGen = Gen.alphaNumStr)
+
+          val gen = genFromSchema(schema, configuration = newConfig, overrides = overrides)
           recordsShouldMatch(gen(Parameters.default, firstSeed), expectedUnionSelected, expectedSchema = barBranch)
         },
         test("selecting and overriding a branch") {

@@ -50,3 +50,5 @@ licenses := List("Apache 2" -> new URL("http://www.apache.org/licenses/LICENSE-2
 homepage := Some(url("https://github.com/olib963/avrocheck"))
 
 publishTo := sonatypePublishToBundle.value
+
+Test / parallelExecution := false

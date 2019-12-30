@@ -107,10 +107,8 @@ object CompositeSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
         )))
 
         // Changes the Map[String, String] and List[Long] generators
-        implicit val alphaString: Arbitrary[String] = Arbitrary(Gen.alphaStr)
-        implicit val negativeLongs: Arbitrary[Long] = Arbitrary(Gen.negNum[Long])
-
-        val gen = genFromSchema(schema)
+        val newConfig = Configuration.Default.copy(stringGen = Gen.alphaStr, longGen = Gen.negNum[Long])
+        val gen = genFromSchema(schema, configuration = newConfig)
         recordsShouldMatch(gen(Parameters.default, firstSeed), expectedWithOverrides)
       },
       suite("Invalid Overrides",

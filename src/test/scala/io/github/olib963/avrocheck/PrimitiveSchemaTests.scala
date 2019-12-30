@@ -62,10 +62,9 @@ object PrimitiveSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
         expectedWithOverrides.put("string", "mutblrcyxQhLibemuhatxpsgkdjZksfaqdqqXmuihrHvbcyeeZxfqohonvi")
         expectedWithOverrides.put("int", -78)
 
-        implicit val alphaString: Arbitrary[String] = Arbitrary(Gen.alphaStr)
-        implicit val negativeInts: Arbitrary[Int] = Arbitrary(Gen.negNum[Int])
+        val newConfig = Configuration.Default.copy(stringGen = Gen.alphaStr, intGen = Gen.negNum[Int])
 
-        val gen = genFromSchema(schema)
+        val gen = genFromSchema(schema, configuration = newConfig)
         recordsShouldMatch(gen(Parameters.default, firstSeed), expectedWithOverrides)
       },
       invalidOverrideSuite,

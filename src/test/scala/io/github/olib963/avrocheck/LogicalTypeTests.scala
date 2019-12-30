@@ -75,19 +75,19 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
         expectedWithOverrides.put("timeMillis", LocalTime.NOON)
         expectedWithOverrides.put("date", LocalDate.of(2999, 12, 31))
 
-        implicit val amTimeArbitrary: Arbitrary[LocalTime] = Arbitrary(for {
+        val amTime = for {
           nanoOfDay <- Gen.chooseNum(LocalTime.MIN.toNanoOfDay, LocalTime.NOON.toNanoOfDay)
-        } yield LocalTime.ofNanoOfDay(nanoOfDay))
+        } yield LocalTime.ofNanoOfDay(nanoOfDay)
 
-        implicit val thisMillennium: Arbitrary[LocalDate] = Arbitrary(for {
+        val thisMillennium = for {
           epochDay <- Gen.chooseNum(LocalDate.of(2000, 1, 1).toEpochDay, LocalDate.of(2999, 12, 31).toEpochDay)
-        } yield LocalDate.ofEpochDay(epochDay))
+        } yield LocalDate.ofEpochDay(epochDay)
 
-        implicit val negativeDecimal: Arbitrary[BigDecimal] = Arbitrary(
-          Arbitrary.arbBigDecimal.arbitrary.map(_.abs.unary_-)
-        )
+        val negativeDecimal= Arbitrary.arbBigDecimal.arbitrary.map(_.abs.unary_-)
 
-        val gen = genFromSchema(schema)
+        val newConfig = Configuration.Default.copy(localTimeGen = amTime, localDateGen = thisMillennium, bigDecimalGen = negativeDecimal)
+
+        val gen = genFromSchema(schema, configuration = newConfig)
         recordsShouldMatch(gen(Parameters.default, firstSeed), expectedWithOverrides)
       },
       invalidSuite,

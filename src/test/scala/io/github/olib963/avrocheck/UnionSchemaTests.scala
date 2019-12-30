@@ -59,17 +59,17 @@ object UnionSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
       },
       suite("Invalid overrides",
         test("should not let you select a branch that doesn't exist in the union") {
-          implicit val overrides: Overrides = selectNamedUnion("Baz")
-          that(Try(genFromSchema(schema)), isFailure[Gen[GenericRecord]])
+          val overrides = selectNamedUnion("Baz")
+          that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         },
         test("should not let you set override keys for a union") {
-          implicit val overrides: Overrides = overrideKeys("int" -> 2)
-          that(Try(genFromSchema(schema)), isFailure[Gen[GenericRecord]])
+          val overrides = overrideKeys("int" -> constantOverride(2))
+          that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         }
       ),
       suite("Valid overrides",
         test("selecting a specific union branch") {
-          implicit val overrides: Overrides = selectNamedUnion("Bar")
+          val overrides = selectNamedUnion("Bar")
           implicit val alphaNumString: Arbitrary[String] = Arbitrary(Gen.alphaNumStr)
 
           val expectedUnionSelected = new GenericData.Record(barBranch)
@@ -77,19 +77,19 @@ object UnionSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
           expectedUnionSelected.put("string", "vzqzfoadmfdki9k1ofcrsjmvFuIJuqen")
           expectedUnionSelected.put("null", null)
 
-          val gen = genFromSchema(schema)
+          val gen = genFromSchema(schema, overrides = overrides)
           recordsShouldMatch(gen(Parameters.default, firstSeed), expectedUnionSelected, expectedSchema = barBranch)
         },
         test("selecting and overriding a branch") {
-          implicit val overrides: Overrides =
-            selectNamedUnion("Bar", overrideKeys("double" -> 1.0, "string" -> "bar"))
+          val overrides =
+            selectNamedUnion("Bar", overrideKeys("double" -> constantOverride(1.0), "string" -> constantOverride("bar")))
 
           val expectedUnionSelected = new GenericData.Record(barBranch)
           expectedUnionSelected.put("double", 1.0)
           expectedUnionSelected.put("string", "bar")
           expectedUnionSelected.put("null", null)
 
-          val gen = genFromSchema(schema)
+          val gen = genFromSchema(schema, overrides = overrides)
           recordsShouldMatch(gen(Parameters.default, firstSeed), expectedUnionSelected, expectedSchema = barBranch)
         }
       )

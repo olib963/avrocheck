@@ -14,6 +14,7 @@ import scala.util.{Success, Try}
 
 object RoundTripTests extends Suite with AvroCheck with AllJavaTestSyntax with PropertyAssertions {
 
+  private val preserialised = Configuration.Default.copy(preserialiseLogicalTypes = true)
   override def tests = Seq(
     suite("Standard round trip",
       test("should generate records with primitives that can be serialised") {
@@ -43,27 +44,27 @@ object RoundTripTests extends Suite with AvroCheck with AllJavaTestSyntax with P
       }),
     suite("Pre serialised round trip",
       test("should generate records with primitives that can be serialised") {
-        forAll(genFromSchema(schemaFromResource("record-with-primitives.avsc"), preserialiseLogicalTypes = true)) { record =>
+        forAll(genFromSchema(schemaFromResource("record-with-primitives.avsc"), configuration = preserialised)) { record =>
           that(Try(roundTrip(record)), isEqualTo[Try[GenericRecord]](Success(record)))
         }
       },
       test("should generate records with composite types that can be serialised") {
-        forAll(genFromSchema(schemaFromResource("record-with-composites.avsc"), preserialiseLogicalTypes = true)) { record =>
+        forAll(genFromSchema(schemaFromResource("record-with-composites.avsc"), configuration = preserialised)) { record =>
           that(Try(roundTrip(record)), isEqualTo[Try[GenericRecord]](Success(record)))
         }
       },
       test("should generate records with logical types that can be serialised") {
-        forAll(genFromSchema(schemaFromResource("record-with-logical-types.avsc"), preserialiseLogicalTypes = true)) { record =>
+        forAll(genFromSchema(schemaFromResource("record-with-logical-types.avsc"), configuration = preserialised)) { record =>
           that(Try(roundTrip(record)), isEqualTo[Try[GenericRecord]](Success(record)))
         }
       },
       test("should generate records with union types that can be serialised") {
-        forAll(genFromSchema(schemaFromResource("record-with-unions.avsc"), preserialiseLogicalTypes = true)) { record =>
+        forAll(genFromSchema(schemaFromResource("record-with-unions.avsc"), configuration = preserialised)) { record =>
           that(Try(roundTrip(record)), isEqualTo[Try[GenericRecord]](Success(record)))
         }
       },
       test("should generate records of union types that can be serialised") {
-        forAll(genFromSchema(schemaFromResource("union-of-records.avsc"), preserialiseLogicalTypes = true)) { record =>
+        forAll(genFromSchema(schemaFromResource("union-of-records.avsc"), configuration = preserialised)) { record =>
           that(Try(roundTrip(record)), isEqualTo[Try[GenericRecord]](Success(record)))
         }
       })

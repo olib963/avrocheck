@@ -92,14 +92,13 @@ object PrimitiveSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
 
   private def invalidOverrideSuite = {
     val missingFieldTest = test("you cannot override a key that doesn't exist") {
-      implicit val overrides: Overrides = overrideKeys("foo" -> "bar")
-      that(Try(genFromSchema(schema)), isFailure[Gen[GenericRecord]])
+      that(Try(genFromSchema(schema, overrides = overrideKeys("foo" -> constantOverride("bar")))), isFailure[Gen[GenericRecord]])
     }
     suite("Invalid override types", missingFieldTest +: invalids.map {
       case (key, value) =>
         test(s"Overriding schema field $key with $value") {
-          implicit val overrides: Overrides = overrideKeys(key -> value)
-          that(Try(genFromSchema(schema)), isFailure[Gen[GenericRecord]])
+          val overrides = overrideKeys(key -> constantOverride(value))
+          that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         }
     })
   }
@@ -117,16 +116,16 @@ object PrimitiveSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
     // Because byte arrays are wrapped we cannot use same method of testing
     val byteArrayTest = test(s"You can override byte arrays") {
       val bytes = Array[Byte](0, 1, 2)
-      implicit val overrides: Overrides = overrideKeys("bytes" -> bytes)
-      val gen = genFromSchema(schema)
+      val overrides = overrideKeys("bytes" -> constantOverride(bytes))
+      val gen = genFromSchema(schema, overrides = overrides)
       val generated = gen(Parameters.default, firstSeed).get
       that(generated.get("bytes"), isEqualTo[Object](ByteBuffer.wrap(bytes)))
     }
     suite("Valid constant overrides", byteArrayTest +: validConstants.map {
       case (key, value) =>
         test(s"Should allow value $value for key $key") {
-          implicit val overrides: Overrides = overrideKeys(key -> value)
-          val gen = genFromSchema(schema)
+          val overrides = overrideKeys(key -> constantOverride(value))
+          val gen = genFromSchema(schema, overrides = overrides)
           val generated = gen(Parameters.default, firstSeed).get
           that(generated.get(key), isEqualTo(value))
         }

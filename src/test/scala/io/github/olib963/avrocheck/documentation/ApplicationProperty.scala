@@ -2,6 +2,8 @@ package io.github.olib963.avrocheck.documentation
 
 // tag::include[]
 import io.github.olib963.avrocheck._
+import io.github.olib963.avrocheck.Implicits._
+import org.apache.avro.Schema
 import org.scalacheck.Prop.forAll
 import org.scalacheck.{Gen, Properties}
 
@@ -17,7 +19,7 @@ object ApplicationProperty extends Properties("My application") {
       // Any number in (-inf, -2001] or [-1000, -1]
       favNum <- Gen.oneOf(Gen.negNum[Int].map(_ - 2001), Gen.chooseNum[Int](-1000, -1))
       overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
-      message <- genFromSchema(schema)(configFromArbitraries, overrides)
+      message <- genFromSchema(schema, overrides = overrides)
     } yield (name, message)
     forAll(generator) { case (name, message) =>
       val result = Application.processUser(message)
@@ -30,7 +32,7 @@ object ApplicationProperty extends Properties("My application") {
       name <- Gen.alphaNumStr
       favNum <- Gen.chooseNum[Int](-2000, -1001)
       overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
-      message <- genFromSchema(schema)(configFromArbitraries, overrides)
+      message <- genFromSchema(schema, overrides = overrides)
     } yield (name, message)
     forAll(generator) { case (name, message) =>
       val result = Application.processUser(message)
@@ -43,7 +45,7 @@ object ApplicationProperty extends Properties("My application") {
       name <- Gen.alphaNumStr
       favNum <- Gen.oneOf(Gen.const(null), Gen.posNum[Int])
       overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
-      message <- genFromSchema(schema)(configFromArbitraries, overrides)
+      message <- genFromSchema(schema, overrides = overrides)
     } yield (name, message)
     forAll(generator) { case (name, message) =>
       val result = Application.processUser(message)
@@ -52,13 +54,15 @@ object ApplicationProperty extends Properties("My application") {
   }
 
   // end::include[]
+  private val newSchema: Schema = schemaFromResource("new-user-schema.avsc")
+
   property("persists new users with negative favourite numbers and gives them a bonus") = {
     val generator = for {
       name <- Gen.alphaNumStr
       // Any number in (-inf, -2001] or [-1000, -1]
       favNum <- Gen.oneOf(Gen.negNum[Int].map(_ - 2001), Gen.chooseNum[Int](-1000, -1))
       overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
-      message <- genFromSchema(schemaFromResource("new-user-schema.avsc"))(configFromArbitraries, overrides)
+      message <- genFromSchema(newSchema, overrides = overrides)
     } yield (name, message)
     forAll(generator) { case (name, message) =>
       val result = Application.processUser(message)
@@ -71,7 +75,7 @@ object ApplicationProperty extends Properties("My application") {
       name <- Gen.alphaNumStr
       favNum <- Gen.chooseNum[Int](-2000, -1001)
       overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
-      message <- genFromSchema(schemaFromResource("new-user-schema.avsc"))(configFromArbitraries, overrides)
+      message <- genFromSchema(newSchema, overrides = overrides)
     } yield (name, message)
     forAll(generator) { case (name, message) =>
       val result = Application.processUser(message)
@@ -84,7 +88,7 @@ object ApplicationProperty extends Properties("My application") {
       name <- Gen.alphaNumStr
       favNum <- Gen.oneOf(Gen.const(null), Gen.posNum[Int])
       overrides = overrideKeys("name" -> name, "favourite_number" -> favNum)
-      message <- genFromSchema(schema)(configFromArbitraries, overrides)
+      message <- genFromSchema(newSchema, overrides = overrides)
     } yield (name, message)
     forAll(generator) { case (name, message) =>
       val result = Application.processUser(message)

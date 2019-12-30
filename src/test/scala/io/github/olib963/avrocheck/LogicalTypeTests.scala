@@ -17,6 +17,8 @@ import scala.util.Try
 object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with PropertyAssertions {
   override val schemaFile = "record-with-logical-types.avsc"
 
+  private val preserialised = Configuration.Default.copy(preserialiseLogicalTypes = true)
+
   private val logicalTypeSchemas = List(
     LogicalTypes.date().addToSchema(Schema.create(Type.INT)),
     LogicalTypes.uuid().addToSchema(Schema.create(Type.STRING)),
@@ -115,8 +117,8 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
   private def invalidSuite = suite("Invalid overrides", invalidOverrides.map {
     case (key, value) =>
       test(s"Should not allow value $value for key $key") {
-        implicit val overrides: Overrides = overrideKeys(key -> value)
-        that(Try(genFromSchema(schema)), isFailure[Gen[GenericRecord]])
+        val overrides = overrideKeys(key -> constantOverride(value))
+        that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
       }
   })
 
@@ -132,8 +134,8 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
 
   private def validOverrideSuite = suite("Valid overrides", validConstants.map {
     case (key, value) => test(s"Should allow value $value for key $key") {
-      implicit val overrides: Overrides = overrideKeys(key -> value)
-      val gen = genFromSchema(schema)
+      val overrides = overrideKeys(key -> constantOverride(value))
+      val gen = genFromSchema(schema, overrides = overrides)
       val generated = gen(Parameters.default, firstSeed).get
       that(generated.get(key), isEqualTo[AnyRef](value))
     }
@@ -150,19 +152,19 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
       expectedPreSerialised.put("decimal", ByteBuffer.wrap(Array[Byte](18, 27, 122, -109, 41, -31, -107, 23, -13, 80)))
       expectedPreSerialised.put("timeMillis", 86399999)
       expectedPreSerialised.put("date", 2147483647)
-      val gen = genFromSchema(schema, preserialiseLogicalTypes = true)
+      val gen = genFromSchema(schema, configuration = preserialised)
       recordsShouldMatch(gen(Parameters.default, firstSeed), expectedPreSerialised)
     },
     test("constant overrides") {
-      implicit val overrides: Overrides = overrideKeys(
-        "uuid" -> UUID.fromString("e22bccba-17f6-4cd0-9d7b-43a119a60c63"),
-        "timestampMillis" -> Instant.ofEpochMilli(123456789),
-        "timestampMicros" -> Instant.ofEpochMilli(987654321),
-        "timeMicros" -> LocalTime.NOON,
-        "decimal" -> BigDecimal(10),
-        "decimalFixed" -> BigDecimal(0.1273),
-        "timeMillis" -> LocalTime.ofSecondOfDay(73656),
-        "date" -> LocalDate.of(1991, 11, 17))
+      val overrides = overrideKeys(
+        "uuid" -> constantOverride(UUID.fromString("e22bccba-17f6-4cd0-9d7b-43a119a60c63")),
+        "timestampMillis" -> constantOverride(Instant.ofEpochMilli(123456789)),
+        "timestampMicros" -> constantOverride(Instant.ofEpochMilli(987654321)),
+        "timeMicros" -> constantOverride(LocalTime.NOON),
+        "decimal" -> constantOverride(BigDecimal(10)),
+        "decimalFixed" -> constantOverride(BigDecimal(0.1273)),
+        "timeMillis" -> constantOverride(LocalTime.ofSecondOfDay(73656)),
+        "date" -> constantOverride(LocalDate.of(1991, 11, 17)))
 
       val expectedPreSerialised = new GenericData.Record(schema)
       expectedPreSerialised.put("uuid", "e22bccba-17f6-4cd0-9d7b-43a119a60c63")
@@ -173,7 +175,7 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
       expectedPreSerialised.put("decimal", ByteBuffer.wrap(Array[Byte](1, -122, -96)))
       expectedPreSerialised.put("timeMillis", 73656000)
       expectedPreSerialised.put("date", 7990)
-      val gen = genFromSchema(schema, preserialiseLogicalTypes = true)
+      val gen = genFromSchema(schema, overrides = overrides, configuration = preserialised)
       recordsShouldMatch(gen(Parameters.default, firstSeed), expectedPreSerialised)
     })
 }

@@ -107,32 +107,30 @@ object CompositeSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
         )))
 
         // Changes the Map[String, String] and List[Long] generators
-        implicit val alphaString: Arbitrary[String] = Arbitrary(Gen.alphaStr)
-        implicit val negativeLongs: Arbitrary[Long] = Arbitrary(Gen.negNum[Long])
-
-        val gen = genFromSchema(schema)
+        val newConfig = Configuration.Default.copy(stringGen = Gen.alphaStr, longGen = Gen.negNum[Long])
+        val gen = genFromSchema(schema, configuration = newConfig)
         recordsShouldMatch(gen(Parameters.default, firstSeed), expectedWithOverrides)
       },
       suite("Invalid Overrides",
         test("should not allow explicit enum symbol overrides") {
           val enumSymbol = new GenericData.EnumSymbol(schema.getField("enum").schema(), "b")
-          implicit val overrides: Overrides = overrideKeys("enum" -> enumSymbol)
-          that(Try(genFromSchema(schema)), isFailure[Gen[GenericRecord]])
+          val overrides = overrideKeys("enum" -> constantOverride(enumSymbol))
+          that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         },
         test("should not allow you to select an enum that doesn't exist") {
-          implicit val overrides: Overrides = overrideKeys("enum" -> "d")
-          that(Try(genFromSchema(schema)) , isFailure[Gen[GenericRecord]])
+          val overrides = overrideKeys("enum" -> constantOverride("d"))
+          that(Try(genFromSchema(schema, overrides = overrides)) , isFailure[Gen[GenericRecord]])
         },
         test("should not allow a fixed override if the byte array is of the wrong size") {
           val smallAssertion = {
             // Too small
-            implicit val overrides: Overrides = overrideKeys("fixed" -> Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
-            that(Try(genFromSchema(schema)), isFailure[Gen[GenericRecord]])
+            val overrides = overrideKeys("fixed" -> constantOverride(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14)))
+            that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
           }
           val bigAssertion = {
             // Too big
-            implicit val overrides: Overrides = overrideKeys("fixed" -> Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16))
-            that(Try(genFromSchema(schema)), isFailure[Gen[GenericRecord]])
+            val overrides = overrideKeys("fixed" -> constantOverride(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)))
+            that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
           }
           smallAssertion.and(bigAssertion)
         }
@@ -140,15 +138,15 @@ object CompositeSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
       suite("Valid Overrides",
         test("should let you select a specific enum") {
           val enumValue = "c"
-          implicit val overrides: Overrides = overrideKeys("enum" -> enumValue)
-          val gen = genFromSchema(schema)
+          val overrides = overrideKeys("enum" -> constantOverride(enumValue))
+          val gen = genFromSchema(schema, overrides = overrides)
           val generated = gen(Parameters.default, firstSeed).get
           that(generated.get("enum"), isEqualTo[AnyRef](new GenericData.EnumSymbol(schema.getField("enum").schema(), enumValue)))
         },
         test("should let you override a fixed byte array with the correct size") {
           val bytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
-          implicit val overrides: Overrides = overrideKeys("fixed" -> bytes)
-          val gen = genFromSchema(schema)
+          val overrides = overrideKeys("fixed" -> constantOverride(bytes))
+          val gen = genFromSchema(schema, overrides = overrides)
           val generated = gen(Parameters.default, firstSeed).get
           that(generated.get("fixed"), isEqualTo[AnyRef](new GenericData.Fixed(schema.getField("fixed").schema(), bytes)))
         }

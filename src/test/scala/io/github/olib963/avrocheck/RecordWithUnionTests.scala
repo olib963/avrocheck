@@ -32,31 +32,30 @@ object RecordWithUnionTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
         val expectedWithOverrides = new GenericData.Record(expectedForSeed1, true)
         expectedWithOverrides.put("nullableInt", null)
         expectedWithOverrides.put("stringOrLong", "}^#HyNhXb\"*sZ<b]>2U8c`lu\\LiC#\"u-0gevpj1A*$2t`uD!|Jd&sTWg'HF`% SCw%P;6s(_4o`yBWk~hC^(JR,:ir}fOXuuXxK")
+        val newConfig = Configuration.Default.copy(stringGen = Gen.asciiPrintableStr)
 
-        implicit val printableStrings: Arbitrary[String] = Arbitrary(Gen.asciiPrintableStr)
-
-        val gen = genFromSchema(schema)
+        val gen = genFromSchema(schema, configuration = newConfig)
         recordsShouldMatch(gen(Parameters.default, firstSeed), expectedWithOverrides)
       },
       test("should not let you select a type that doesn't exist in the union") {
         val intAsString = {
-          implicit val overrides: Overrides = overrideKeys("nullableInt" -> "hello")
-          that(Try(genFromSchema(schema)), isFailure[Gen[GenericRecord]])
+          val overrides = overrideKeys("nullableInt" -> constantOverride("hello"))
+          that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         }
         val stringOrLongAsBoolean = {
-          implicit val overrides: Overrides = overrideKeys("stringOrLong" -> false)
-          that(Try(genFromSchema(schema)), isFailure[Gen[GenericRecord]])
+          val overrides = overrideKeys("stringOrLong" -> constantOverride(false))
+          that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         }
         intAsString.and(stringOrLongAsBoolean)
       },
       test("Valid overrides, selecting a value for one branch of the union"){
-        implicit val overrides: Overrides = overrideKeys("nullableInt" -> 12, "stringOrLong" -> 123L)
+        val overrides = overrideKeys("nullableInt" -> constantOverride(12), "stringOrLong" -> constantOverride(123L))
 
         val expectedUnionSelected = new GenericData.Record(schema)
         expectedUnionSelected.put("nullableInt", 12)
         expectedUnionSelected.put("stringOrLong", 123L)
 
-        val gen = genFromSchema(schema)
+        val gen = genFromSchema(schema, overrides = overrides)
         recordsShouldMatch(gen(Parameters.default, firstSeed), expectedUnionSelected)
       }
     )

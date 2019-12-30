@@ -5,7 +5,7 @@ import com.sksamuel.avro4s.DefaultFieldMapper
 import org.scalacheck.{Arbitrary, Properties}
 import org.scalacheck.Prop.forAll
 import io.github.olib963.avrocheck._
-import org.apache.avro.Schema
+import io.github.olib963.avrocheck.Implicits._
 
 import scala.util.{Success, Try}
 
@@ -27,7 +27,7 @@ object SerdeProperty extends Properties("Serde") {
       // Notice that here we do not override age (or in the later schema favourite_colour) because these
       // values are of no interest to our application code
       overrides = overrideKeys("name" -> name, "favourite_number" -> favourite_number)
-      record <- genFromSchema(schema)(configFromArbitraries, overrides)
+      record <- genFromSchema(schema, overrides = overrides)
     } yield (record, User(name, favNum))
     forAll(generator) { case (record, user) =>
       Try(User.decoder.decode(record, User.schema, DefaultFieldMapper)) == Success(user)
@@ -47,7 +47,7 @@ object SerdeProperty extends Properties("Serde") {
       favNum <- Arbitrary.arbOption[Int].arbitrary
       favourite_number = favNum.map(Int.box).orNull
       overrides = overrideKeys("name" -> name, "favourite_number" -> favourite_number)
-      record <- genFromSchema(newSchema)(configFromArbitraries, overrides)
+      record <- genFromSchema(newSchema, overrides = overrides)
     } yield (record, User(name, favNum))
     forAll(generator) { case (record, user) =>
       Try(User.decoder.decode(record, User.schema, DefaultFieldMapper)) == Success(user)

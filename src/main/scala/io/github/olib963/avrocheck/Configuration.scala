@@ -16,7 +16,8 @@ case class Configuration(longGen: Gen[Long],
                          localDateGen: Gen[LocalDate],
                          localTimeGen: Gen[LocalTime],
                          instantGen: Gen[Instant],
-                         bigDecimalGen: Gen[BigDecimal])
+                         bigDecimalGen: Gen[BigDecimal],
+                         preserialiseLogicalTypes: Boolean)
 
 object Configuration {
   // Provide Arbitraries for java.time classes
@@ -32,4 +33,21 @@ object Configuration {
   val instantMicrosArb: Arbitrary[Instant] = Arbitrary(for {
     millis <- Gen.chooseNum(Long.MinValue / 1000L, Long.MaxValue / 1000L)
   } yield Instant.ofEpochMilli(millis))
+
+  val Default = Configuration(
+    Arbitrary.arbLong.arbitrary,
+    Arbitrary.arbInt.arbitrary,
+    Arbitrary.arbString.arbitrary,
+    Arbitrary.arbBool.arbitrary,
+    Arbitrary.arbDouble.arbitrary,
+    Arbitrary.arbFloat.arbitrary,
+    Arbitrary.arbByte.arbitrary,
+    Arbitrary.arbUuid.arbitrary,
+    localDateArb.arbitrary,
+    localTimeArb.arbitrary,
+    instantMicrosArb.arbitrary,
+    Arbitrary.arbBigDecimal.arbitrary,
+    preserialiseLogicalTypes = false
+  )
+
 }

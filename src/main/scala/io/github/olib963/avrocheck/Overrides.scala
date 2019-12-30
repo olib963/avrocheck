@@ -3,7 +3,7 @@ package io.github.olib963.avrocheck
 sealed trait Overrides
 
 object Overrides {
-  implicit object NoOverrides extends Overrides
+  object NoOverrides extends Overrides
   case class ConstantOverride(value: Any) extends Overrides
   case class KeyOverrides(overrides: Map[String, Overrides]) extends Overrides
   case class SelectedUnion(branchName: String, overrides: Overrides) extends Overrides

@@ -13,6 +13,7 @@ object Implicits {
   import scala.language.implicitConversions
 
   case class PreserialiseLogicalTypes(shouldPreserialise: Boolean)
+  implicit def preserialiseConfig(shouldPreserialise: Boolean): PreserialiseLogicalTypes = PreserialiseLogicalTypes(shouldPreserialise)
 
   implicit def configFromArbitraries(implicit longArb: Arbitrary[Long],
                                      intArb: Arbitrary[Int],
@@ -44,6 +45,7 @@ object Implicits {
     )
 
   implicit def overrideFromConstant[A](value: A): Overrides = constantOverride(value)
+  implicit def overrideFromGenerator[A](gen: Gen[A]): Overrides = generatorOverride(gen)
   // TODO name of this function
   def genFromSchemaImplicits(schema: Schema)(implicit configuration: Configuration, overrides: Overrides = NoOverrides): Gen[GenericRecord] = genFromSchema(schema, configuration, overrides)
 

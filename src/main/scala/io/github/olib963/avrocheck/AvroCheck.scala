@@ -29,6 +29,7 @@ trait AvroCheck {
   def selectNamedUnion(branchName: String, overrides: Overrides = NoOverrides): Overrides = SelectedUnion(branchName, overrides)
 
   def constantOverride[A](value: A): Overrides = ConstantOverride(value)
+  def generatorOverride[A](gen: Gen[A]): Overrides = GeneratorOverrides(gen)
 
   // Schema functions
   def schemaFromResource(schemaResource: String): Schema =
@@ -268,7 +269,6 @@ trait AvroCheck {
   private def eitherSequence[A, B](s: Seq[Either[A, B]]): Either[A, Seq[B]] = s.foldRight(Right(Nil): Either[A, List[B]]) {
     (e, acc) => for (xs <- acc; x <- e) yield x :: xs
   }
-
 
   private def recordGenerator(schema: Schema, configuration: Configuration, overrides: Overrides): AttemptedGen[GenericRecord] = {
     val fieldOverridesFunction: Either[AvroCheckError, String => Overrides] = overrides match {

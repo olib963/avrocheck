@@ -266,7 +266,7 @@ trait AvroCheck {
     }
 
   private def eitherSequence[A, B](s: Seq[Either[A, B]]): Either[A, Seq[B]] = s.foldRight(Right(Nil): Either[A, List[B]]) {
-    (e, acc) => for (xs <- acc.right; x <- e.right) yield x :: xs
+    (e, acc) => for (xs <- acc; x <- e) yield x :: xs
   }
 
 
@@ -344,5 +344,3 @@ trait AvroCheck {
   private def toMicros(instant: Instant): Long = TimeUnit.MILLISECONDS.toMicros(instant.toEpochMilli)
 
 }
-
-case class SuppressedStackTrace(message: String, cause: Throwable) extends RuntimeException(message, cause, false, false)

@@ -26,6 +26,7 @@ trait SchemaGeneratorSuite extends Suite with AvroCheck {
   val schemaFile: String
   lazy val schema = schemaFromResource(schemaFile)
 
+  // TODO delete seeds
   val firstSeed = Seed(10)
   val secondSeed = Seed(1234567890)
 
@@ -34,7 +35,7 @@ trait SchemaGeneratorSuite extends Suite with AvroCheck {
 
   // TODO remove option
   def recordsShouldMatch(generated: Option[GenericRecord], expected: GenericRecord, expectedSchema: Schema = schema): Assertion = generated match {
-    case None => () => AssertionResult.failure("No record was generated") // TODO more explicit failure function
+    case None => () => AssertionResult.failure("No record was generated")
     case Some(record) =>
       val fieldAssertions = toScala(expectedSchema.getFields).map(_.name()).map(field =>
         that(s"The field $field should match", record.get(field), isEqualTo(expected.get(field))))

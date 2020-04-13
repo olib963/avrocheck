@@ -3,10 +3,13 @@ package io.github.olib963.avrocheck
 import java.time.{Instant, LocalDate, LocalTime}
 import java.util.UUID
 
-import io.github.olib963.avrocheck.Overrides.{ConstantOverride, NoOverrides}
+import io.github.olib963.avrocheck
+import io.github.olib963.avrocheck.Overrides.NoOverrides
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.scalacheck.{Arbitrary, Gen}
+
+import scala.reflect.ClassTag
 
 object Implicits {
 
@@ -45,8 +48,8 @@ object Implicits {
     )
 
   implicit def overrideFromConstant[A](value: A): Overrides = constantOverride(value)
-  implicit def overrideFromGenerator[A](gen: Gen[A]): Overrides = generatorOverride(gen)
-  // TODO name of this function
-  def genFromSchemaImplicits(schema: Schema)(implicit configuration: Configuration, overrides: Overrides = NoOverrides): Gen[GenericRecord] = genFromSchema(schema, configuration, overrides)
+  implicit def overrideFromGenerator[A: ClassTag](gen: Gen[A]): Overrides = generatorOverride(gen)
+  def genFromSchemaImplicit(schema: Schema)(implicit configuration: Configuration, overrides: Overrides = NoOverrides): Gen[GenericRecord] =
+    avrocheck.genFromSchema(schema, configuration, overrides)
 
 }

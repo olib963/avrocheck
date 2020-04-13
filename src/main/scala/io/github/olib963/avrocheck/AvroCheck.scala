@@ -17,25 +17,27 @@ import org.scalacheck.util.Buildable
 
 import scala.io.Source
 import scala.math.BigDecimal.RoundingMode
+import scala.reflect.ClassTag
+import reflect.classTag
 
 trait AvroCheck {
 
   // Override definitions
   def overrideKeys(overrides: (String, Overrides)): Overrides = KeyOverrides(Map(overrides))
 
-  def overrideKeys(overrides: (String, Overrides), secondOverrides: (String, Overrides), moreOverrides: (String, Overrides)*): Overrides =
-    KeyOverrides(Map(overrides +: secondOverrides +: moreOverrides: _*))
+  def overrideKeys(overrides: (String, Overrides), moreOverrides: (String, Overrides)*): Overrides =
+    KeyOverrides(Map(overrides +: moreOverrides: _*))
 
   def selectNamedUnion(branchName: String, overrides: Overrides = NoOverrides): Overrides = SelectedUnion(branchName, overrides)
 
+  // TODO should constantOverride be remodelled as generatorOverride(Gen.const(value))?
   def constantOverride[A](value: A): Overrides = ConstantOverride(value)
-  def generatorOverride[A](gen: Gen[A]): Overrides = GeneratorOverrides(gen)
+  def generatorOverride[A: ClassTag](gen: Gen[A]): Overrides = GeneratorOverrides(gen)
 
   // Schema functions
   def schemaFromResource(schemaResource: String): Schema =
     new Schema.Parser().parse(Source.fromResource(schemaResource).mkString)
 
-  // TODO better way to express failure that exceptions?
   def genFromSchema(schema: Schema, configuration: Configuration = Configuration.Default, overrides: Overrides = NoOverrides): Gen[GenericRecord] = schema.getType match {
     case Type.RECORD => recordGenerator(schema, configuration, overrides) match {
       case Right(gen) => gen
@@ -49,6 +51,7 @@ trait AvroCheck {
     case _ => sys.error(s"Can only create generator for records or a union of records, schema is not supported: $schema")
   }
 
+  // Internal implementation details
   private type AttemptedGen[A] = Either[AvroCheckError, Gen[A]]
 
   private def generatorFromSchema(schema: Schema, configuration: Configuration, overrides: Overrides): AttemptedGen[Any] = schema.getType match {
@@ -76,18 +79,21 @@ trait AvroCheck {
   private def booleanGenerator(configuration: Configuration, overrides: Overrides): AttemptedGen[Boolean] = overrides match {
     case NoOverrides => Right(configuration.booleanGen)
     case ConstantOverride(bool: Boolean) => Right(Gen.const(bool))
+    case GeneratorOverrides(gen, tag) if tag == classTag[Boolean] => Right(gen.map(_.asInstanceOf[Boolean]))
     case other => Left(SimpleError(s"Invalid override passed for boolean schema: $other"))
   }
 
   private def doubleGenerator(configuration: Configuration, overrides: Overrides): AttemptedGen[Double] = overrides match {
     case NoOverrides => Right(configuration.doubleGen)
     case ConstantOverride(double: Double) => Right(Gen.const(double))
+    case GeneratorOverrides(gen, tag) if tag == classTag[Double] => Right(gen.map(_.asInstanceOf[Double]))
     case other => Left(SimpleError(s"Invalid override passed for double schema: $other"))
   }
 
   private def floatGenerator(configuration: Configuration, overrides: Overrides): AttemptedGen[Float] = overrides match {
     case NoOverrides => Right(configuration.floatGen)
     case ConstantOverride(float: Float) => Right(Gen.const(float))
+    case GeneratorOverrides(gen, tag) if tag == classTag[Float] => Right(gen.map(_.asInstanceOf[Float]))
     case other => Left(SimpleError(s"Invalid override passed for float schema: $other"))
   }
 
@@ -110,6 +116,7 @@ trait AvroCheck {
       case _ => overrides match {
         case NoOverrides => Right(configuration.intGen)
         case ConstantOverride(int: Int) => Right(Gen.const(int))
+        case GeneratorOverrides(gen, tag) if tag == classTag[Int] => Right(gen)
         case other => Left(SimpleError(s"Invalid override passed for int schema: $other"))
       }
     }
@@ -140,6 +147,7 @@ trait AvroCheck {
       case _ => overrides match {
         case NoOverrides => Right(configuration.longGen)
         case ConstantOverride(long: Long) => Right(Gen.const(long))
+        case GeneratorOverrides(gen, tag) if tag == classTag[Long] => Right(gen)
         case other => Left(SimpleError(s"Invalid override passed for long schema: $other"))
       }
     }
@@ -158,6 +166,7 @@ trait AvroCheck {
       case _ => overrides match {
         case NoOverrides => Right(configuration.stringGen)
         case ConstantOverride(string: String) => Right(Gen.const(string))
+        case GeneratorOverrides(gen, tag) if tag == classTag[String] => Right(gen)
         case other => Left(SimpleError(s"Invalid override passed for string schema: $other"))
       }
     }
@@ -176,6 +185,7 @@ trait AvroCheck {
         val byteArrayGen = overrides match {
           case NoOverrides => Right(Gen.containerOf[Array, Byte](configuration.byteGen))
           case ConstantOverride(bytes: Array[Byte]) => Right(Gen.const(bytes))
+          case GeneratorOverrides(gen, tag) if tag == classTag[Array[Byte]] => Right(gen.map(_.asInstanceOf[Array[Byte]]))
           case other => Left(SimpleError(s"Invalid override passed for bytes schema: $other, can only override with byte arrays"))
         }
         byteArrayGen.map(_.map(ByteBuffer.wrap))
@@ -325,7 +335,6 @@ trait AvroCheck {
     val max = BigDecimal(maxUnscaled, decimal.getScale)
     bigDecimal.abs.min(max) * bigDecimal.signum
   }
-
 
   // The following functions drop extra unused precision such that a round trip of serialise -> deserialise gives the same value
   private def timeMillis(localTime: LocalTime): LocalTime = {

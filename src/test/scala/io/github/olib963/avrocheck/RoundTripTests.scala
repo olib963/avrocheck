@@ -7,6 +7,7 @@ import io.github.olib963.javatest_scala.scalacheck.PropertyAssertions
 import io.github.olib963.javatest_scala.{AllJavaTestSyntax, Suite}
 import org.apache.avro.Conversions.{DecimalConversion, UUIDConversion}
 import org.apache.avro.Schema
+import org.apache.avro.data.TimeConversions
 import org.apache.avro.generic._
 import org.apache.avro.io.{Decoder, DecoderFactory, EncoderFactory}
 
@@ -102,24 +103,19 @@ case class NonUTF8Reader(schema: Schema, data: GenericData) extends GenericDatum
 object Data {
   val genericData: GenericData = {
     val d = new GenericData()
-    d.addLogicalTypeConversion(new UUIDConversion())
     d.addLogicalTypeConversion(ScalaDecimalConversion)
-    d.addLogicalTypeConversion(DateConversion)
-    d.addLogicalTypeConversion(TimeMicrosConversion)
-    d.addLogicalTypeConversion(TimeMillisConversion)
-    d.addLogicalTypeConversion(TimestampMicrosConversion)
-    d.addLogicalTypeConversion(TimestampMillisConversion)
+    d.addLogicalTypeConversion(new UUIDConversion())
+    d.addLogicalTypeConversion(new TimeConversions.DateConversion())
+    d.addLogicalTypeConversion(new TimeConversions.TimeMicrosConversion())
+    d.addLogicalTypeConversion(new TimeConversions.TimeMillisConversion())
+    d.addLogicalTypeConversion(new TimeConversions.TimestampMicrosConversion())
+    d.addLogicalTypeConversion(new TimeConversions.TimestampMillisConversion())
     d
   }
 
   import org.apache.avro.Conversion
   import org.apache.avro.LogicalType
-  import org.apache.avro.LogicalTypes
   import org.apache.avro.Schema
-  import java.time.Instant
-  import java.time.LocalDate
-  import java.time.LocalTime
-  import java.util.concurrent.TimeUnit
 
   // Small converter to handle scala bigdecimals
   object ScalaDecimalConversion extends Conversion[BigDecimal] {
@@ -140,75 +136,6 @@ object Data {
 
     override def toBytes(value: BigDecimal, schema: Schema, `type`: LogicalType): ByteBuffer =
       conversion.toBytes(value.underlying(), schema, `type`)
-  }
-
-  // The following conversions are included in avro 1.9 in the class org.apache.avro.data.Jsr310TimeConversions
-
-  object DateConversion extends Conversion[LocalDate] {
-    override def getConvertedType: Class[LocalDate] = classOf[LocalDate]
-
-    override def getLogicalTypeName = "date"
-
-    override def fromInt(daysFromEpoch: Integer, schema: Schema, `type`: LogicalType): LocalDate = LocalDate.ofEpochDay(daysFromEpoch.toLong)
-
-    override def toInt(date: LocalDate, schema: Schema, `type`: LogicalType): Integer = {
-      val epochDays = date.toEpochDay
-      epochDays.toInt
-    }
-
-    override def getRecommendedSchema: Schema = LogicalTypes.date.addToSchema(Schema.create(Schema.Type.INT))
-  }
-
-  object TimeMillisConversion extends Conversion[LocalTime] {
-    override def getConvertedType: Class[LocalTime] = classOf[LocalTime]
-
-    override def getLogicalTypeName = "time-millis"
-
-    override def fromInt(millisFromMidnight: Integer, schema: Schema, `type`: LogicalType): LocalTime = LocalTime.ofNanoOfDay(TimeUnit.MILLISECONDS.toNanos(millisFromMidnight.toLong))
-
-    override def toInt(time: LocalTime, schema: Schema, `type`: LogicalType): Integer = TimeUnit.NANOSECONDS.toMillis(time.toNanoOfDay).toInt
-
-    override def getRecommendedSchema: Schema = LogicalTypes.timeMillis.addToSchema(Schema.create(Schema.Type.INT))
-  }
-
-  object TimeMicrosConversion extends Conversion[LocalTime] {
-    override def getConvertedType: Class[LocalTime] = classOf[LocalTime]
-
-    override def getLogicalTypeName = "time-micros"
-
-    override def fromLong(microsFromMidnight: java.lang.Long, schema: Schema, `type`: LogicalType): LocalTime = LocalTime.ofNanoOfDay(TimeUnit.MICROSECONDS.toNanos(microsFromMidnight))
-
-    override def toLong(time: LocalTime, schema: Schema, `type`: LogicalType): java.lang.Long = TimeUnit.NANOSECONDS.toMicros(time.toNanoOfDay)
-
-    override def getRecommendedSchema: Schema = LogicalTypes.timeMicros.addToSchema(Schema.create(Schema.Type.LONG))
-  }
-
-  object TimestampMillisConversion extends Conversion[Instant] {
-    override def getConvertedType: Class[Instant] = classOf[Instant]
-
-    override def getLogicalTypeName = "timestamp-millis"
-
-    override def fromLong(millisFromEpoch: java.lang.Long, schema: Schema, `type`: LogicalType): Instant = Instant.ofEpochMilli(millisFromEpoch)
-
-    override def toLong(timestamp: Instant, schema: Schema, `type`: LogicalType): java.lang.Long = timestamp.toEpochMilli
-
-    override def getRecommendedSchema: Schema = LogicalTypes.timestampMillis.addToSchema(Schema.create(Schema.Type.LONG))
-  }
-
-  // Micros with milli precision
-  object TimestampMicrosConversion extends Conversion[Instant] {
-    override def getConvertedType: Class[Instant] = classOf[Instant]
-
-    override def getLogicalTypeName = "timestamp-micros"
-
-    override def fromLong(microsFromEpoch: java.lang.Long, schema: Schema, `type`: LogicalType): Instant =
-      Instant.ofEpochMilli(TimeUnit.MICROSECONDS.toMillis(microsFromEpoch))
-
-
-    override def toLong(instant: Instant, schema: Schema, `type`: LogicalType): java.lang.Long =
-      TimeUnit.MILLISECONDS.toMicros(instant.toEpochMilli)
-
-    override def getRecommendedSchema: Schema = LogicalTypes.timestampMicros.addToSchema(Schema.create(Schema.Type.LONG))
   }
 
 }

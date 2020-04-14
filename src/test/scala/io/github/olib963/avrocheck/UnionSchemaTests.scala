@@ -3,10 +3,8 @@ package io.github.olib963.avrocheck
 import io.github.olib963.javatest_scala.AllJavaTestSyntax
 import io.github.olib963.javatest_scala.scalacheck.PropertyAssertions
 import org.apache.avro.Schema
-import org.apache.avro.generic.{GenericData, GenericRecord}
+import org.apache.avro.generic.{GenericRecord, GenericRecordBuilder => RecordBuilder}
 import org.scalacheck.Gen
-import org.scalacheck.Gen.Parameters
-import org.apache.avro.generic.{GenericRecordBuilder => RecordBuilder}
 
 import scala.util.Try
 

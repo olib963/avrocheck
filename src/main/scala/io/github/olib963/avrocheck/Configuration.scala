@@ -34,7 +34,7 @@ object Configuration {
     millis <- Gen.chooseNum(Long.MinValue / 1000L, Long.MaxValue / 1000L)
   } yield Instant.ofEpochMilli(millis))
 
-  val Default = Configuration(
+  val Default: Configuration = Configuration(
     Arbitrary.arbLong.arbitrary,
     Arbitrary.arbInt.arbitrary,
     Arbitrary.arbString.arbitrary,

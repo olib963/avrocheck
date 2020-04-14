@@ -14,7 +14,7 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 
 libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck" % scalacheckVersion,
-  "org.apache.avro" % "avro" % "1.8.2",
+  "org.apache.avro" % "avro" % "1.9.2",
   "com.sksamuel.avro4s" %% "avro4s-core" % "3.0.4" % Test
 )
 

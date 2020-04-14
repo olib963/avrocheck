@@ -46,7 +46,7 @@ object UnionSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
           .set("null", null)
           .build()
         forAll(genFromSchema(schema, configuration))(
-          r => recordsShouldMatch(Some(r), expectedFoo, expectedSchema = fooBranch).or(recordsShouldMatch(Some(r), expectedBar, expectedSchema = barBranch)))
+          r => recordsShouldMatch(r, expectedFoo, expectedSchema = fooBranch).or(recordsShouldMatch(r, expectedBar, expectedSchema = barBranch)))
       },
       suite("Invalid overrides",
         test("should not let you select a branch that doesn't exist in the union") {
@@ -73,7 +73,7 @@ object UnionSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
             .set("null", null)
             .build()
 
-          forAll(genFromSchema(schema, configuration, overrides))(r => recordsShouldMatch(Some(r), expectedRecord, expectedSchema = barBranch))
+          forAll(genFromSchema(schema, configuration, overrides))(r => recordsShouldMatch(r, expectedRecord, expectedSchema = barBranch))
         },
         test("selecting and overriding a branch") {
           val overrides =
@@ -85,7 +85,7 @@ object UnionSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
             .set("null", null)
             .build()
 
-          forAll(genFromSchema(schema, overrides = overrides))(r => recordsShouldMatch(Some(r), expectedUnionSelected, expectedSchema = barBranch))
+          forAll(genFromSchema(schema, overrides = overrides))(r => recordsShouldMatch(r, expectedUnionSelected, expectedSchema = barBranch))
         }
       )
     )

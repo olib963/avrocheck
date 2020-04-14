@@ -2,9 +2,8 @@ package io.github.olib963.avrocheck
 
 import io.github.olib963.javatest_scala.AllJavaTestSyntax
 import io.github.olib963.javatest_scala.scalacheck.PropertyAssertions
-import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder => RecordBuilder}
+import org.apache.avro.generic.{GenericRecord, GenericRecordBuilder => RecordBuilder}
 import org.scalacheck.Gen
-import org.scalacheck.Gen.Parameters
 
 import scala.util.Try
 
@@ -40,10 +39,10 @@ object RecordWithUnionTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
           .set("stringOrLong", 1234L)
           .build()
         forAll(genFromSchema(schema, configuration)){r =>
-          recordsShouldMatch(Some(r), nullAndString)
-            .or(recordsShouldMatch(Some(r), nullAndLong))
-            .or(recordsShouldMatch(Some(r), intAndString))
-            .or(recordsShouldMatch(Some(r), nintAndLong))
+          recordsShouldMatch(r, nullAndString)
+            .or(recordsShouldMatch(r, nullAndLong))
+            .or(recordsShouldMatch(r, intAndString))
+            .or(recordsShouldMatch(r, nintAndLong))
         }
       },
       test("should not let you select a type that doesn't exist in the union") {
@@ -65,7 +64,7 @@ object RecordWithUnionTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
           .set("stringOrLong", 123L)
           .build()
 
-        forAll(genFromSchema(schema, overrides = overrides))(r => recordsShouldMatch(Some(r), expectedUnionSelected))
+        forAll(genFromSchema(schema, overrides = overrides))(r => recordsShouldMatch(r, expectedUnionSelected))
       }
     )
   }

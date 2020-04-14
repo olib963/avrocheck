@@ -7,11 +7,9 @@ import java.util.UUID
 import io.github.olib963.javatest_scala.AllJavaTestSyntax
 import io.github.olib963.javatest_scala.scalacheck.PropertyAssertions
 import org.apache.avro.Schema.Type
-import org.apache.avro.generic.{GenericRecordBuilder => RecordBuilder}
-import org.apache.avro.generic.{GenericData, GenericRecord}
+import org.apache.avro.generic.{GenericData, GenericRecord, GenericRecordBuilder => RecordBuilder}
 import org.apache.avro.{LogicalTypes, Schema}
 import org.scalacheck.{Arbitrary, Gen}
-import org.scalacheck.Gen.Parameters
 
 import scala.util.Try
 
@@ -66,7 +64,7 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
           .set("decimalFixed", maxDecimalWith4Bytes)
           .set("date", date)
           .build()
-        forAll(genFromSchema(schema, configuration))(r => recordsShouldMatch(Some(r), expectedRecord))
+        forAll(genFromSchema(schema, configuration))(r => recordsShouldMatch(r, expectedRecord))
       },
       invalidSuite,
       validOverrideSuite,
@@ -144,9 +142,7 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
     suite("Constant Overrides", validConstants.map {
       case (key, value) => test(s"Should allow value $value for key $key") {
         val overrides = overrideKeys(key -> constantOverride(value))
-        val gen = genFromSchema(schema, overrides = overrides)
-        val generated = gen(Parameters.default, firstSeed).get
-        that(generated.get(key), isEqualTo[AnyRef](value))
+        forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get(key), isEqualTo[AnyRef](value)))
       }
     }),
     suite("Generator Overrides", Seq(
@@ -216,6 +212,6 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
         .set("decimalFixed", new GenericData.Fixed(fixedDecimalSchema, Array[Byte](0, -1, -1, -1)))
         .set("date", 2147483647)
         .build()
-      forAll(genFromSchema(schema, configuration))(r => recordsShouldMatch(Some(r), expectedRecord))
+      forAll(genFromSchema(schema, configuration))(r => recordsShouldMatch(r, expectedRecord))
     })
 }

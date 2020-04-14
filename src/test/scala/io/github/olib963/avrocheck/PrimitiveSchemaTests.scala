@@ -47,7 +47,7 @@ object PrimitiveSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
             .build()
           // TODO how to check bytes without override?
           forAll(genFromSchema(schema, configuration, overrides = overrideKeys("bytes" -> constantOverride(bytes))))(
-            r => recordsShouldMatch(Some(r), expectedRecord))
+            r => recordsShouldMatch(r, expectedRecord))
         }, invalidOverrideSuite) ++ validOverrideSuites
       )
     )

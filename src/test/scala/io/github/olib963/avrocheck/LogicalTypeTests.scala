@@ -171,7 +171,7 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
         forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("decimal"), hasType[BigDecimal]))
       },
       test(s"Should allow a generator override for fixed decimals") {
-        val biggerThanMaxValue = Arbitrary.arbBigDecimal.arbitrary.suchThat(_ >= maxDecimalWith4Bytes) // TODO this generator sometimes runs out of values
+        val biggerThanMaxValue = Arbitrary.arbBigDecimal.arbitrary.suchThat(_ >= 0).map(_ + maxDecimalWith4Bytes)
         val overrides = overrideKeys("decimalFixed" -> generatorOverride(biggerThanMaxValue))
         forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("decimalFixed"), isEqualTo[AnyRef](maxDecimalWith4Bytes)))
       },

@@ -326,7 +326,7 @@ trait AvroCheck {
     // First byte at least is used for sign hence size - 1
     val maxUnscaled = BigInt(256).pow(size - 1) - 1
     val max = BigDecimal(maxUnscaled, decimal.getScale)
-    bigDecimal.abs.min(max) * bigDecimal.signum
+    if(max < bigDecimal.abs) max * bigDecimal.signum else bigDecimal
   }
 
   // The following functions drop extra unused precision such that a round trip of serialise -> deserialise gives the same value

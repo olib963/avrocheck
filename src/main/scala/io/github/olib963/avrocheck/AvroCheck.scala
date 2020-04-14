@@ -350,8 +350,8 @@ trait AvroCheck {
   case class SimpleError(error: String) extends AvroCheckError {
     override def errorMessages: Seq[String] = Seq(error)
   }
-  case class ComposedError(error: String, cause: AvroCheckError) extends AvroCheckError {
-    override def errorMessages: Seq[String] = error +: cause.errorMessages
+  case class ComposedError(error: String, cause: AvroCheckError, prefixErrors: Boolean = false) extends AvroCheckError {
+    override def errorMessages: Seq[String] = error +: cause.errorMessages.map("\t" + _)
   }
   case class FieldError(field: String, cause: AvroCheckError) extends AvroCheckError {
     override def errorMessages: Seq[String] = s"Could not create generator for field: $field" +: cause.errorMessages.map("\t" + _)

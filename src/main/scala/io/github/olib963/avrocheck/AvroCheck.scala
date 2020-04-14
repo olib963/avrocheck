@@ -38,6 +38,7 @@ trait AvroCheck {
   def schemaFromResource(schemaResource: String): Schema =
     new Schema.Parser().parse(Source.fromResource(schemaResource).mkString)
 
+  // TODO should we allow a more generic implementation such as : Gen[AvroData] where AvroData = Record | Union(record, schema) | Datum(any)?
   def genFromSchema(schema: Schema, configuration: Configuration = Configuration.Default, overrides: Overrides = NoOverrides): Gen[GenericRecord] = schema.getType match {
     case Type.RECORD => recordGenerator(schema, configuration, overrides) match {
       case Right(gen) => gen
@@ -103,6 +104,7 @@ trait AvroCheck {
         val generator = overrides match {
           case NoOverrides => Right(configuration.localDateGen)
           case ConstantOverride(localDate: LocalDate) => Right(Gen.const(localDate))
+          case GeneratorOverrides(gen, tag) if tag == classTag[LocalDate] => Right(gen.map(_.asInstanceOf[LocalDate]))
           case other => Left(SimpleError(s"Invalid override passed for date schema: $other"))
         }
         generator.map(_.map(date => if (configuration.preserialiseLogicalTypes) date.toEpochDay.toInt else date))
@@ -110,6 +112,7 @@ trait AvroCheck {
         val generator = overrides match {
           case NoOverrides => Right(configuration.localTimeGen.map(timeMillis))
           case ConstantOverride(localTime: LocalTime) => Right(Gen.const(timeMillis(localTime)))
+          case GeneratorOverrides(gen, tag) if tag == classTag[LocalTime] => Right(gen.map(_.asInstanceOf[LocalTime]))
           case other => Left(SimpleError(s"Invalid override passed for time millis schema: $other"))
         }
         generator.map(_.map(time => if (configuration.preserialiseLogicalTypes) TimeUnit.NANOSECONDS.toMillis(time.toNanoOfDay).toInt else time))
@@ -127,6 +130,7 @@ trait AvroCheck {
         val generator = overrides match {
           case NoOverrides => Right(configuration.instantGen.map(dropNanos))
           case ConstantOverride(instant: Instant) => Right(Gen.const(dropNanos(instant)))
+          case GeneratorOverrides(gen, tag) if tag == classTag[Instant] => Right(gen.map(_.asInstanceOf[Instant]))
           case other => Left(SimpleError(s"Invalid override passed for timestamp schema: $other"))
         }
         generator.map(_.map { time => if (configuration.preserialiseLogicalTypes) time.toEpochMilli else time })
@@ -134,6 +138,7 @@ trait AvroCheck {
         val generator = overrides match {
           case NoOverrides => Right(configuration.instantGen)
           case ConstantOverride(instant: Instant) => Right(Gen.const(instant))
+          case GeneratorOverrides(gen, tag) if tag == classTag[Instant] => Right(gen.map(_.asInstanceOf[Instant]))
           case other => Left(SimpleError(s"Invalid override passed for timestamp schema: $other"))
         }
         generator.map(_.map { time => if (configuration.preserialiseLogicalTypes) toMicros(time) else time })
@@ -141,6 +146,7 @@ trait AvroCheck {
         val generator = overrides match {
           case NoOverrides => Right(configuration.localTimeGen.map(timeMicros))
           case ConstantOverride(localTime: LocalTime) => Right(Gen.const(timeMicros(localTime)))
+          case GeneratorOverrides(gen, tag) if tag == classTag[LocalTime] => Right(gen.map(_.asInstanceOf[LocalTime]))
           case other => Left(SimpleError(s"Invalid override passed for time micros schema: $other"))
         }
         generator.map(_.map(time => if (configuration.preserialiseLogicalTypes) TimeUnit.NANOSECONDS.toMicros(time.toNanoOfDay) else time))
@@ -160,6 +166,7 @@ trait AvroCheck {
         val generator = overrides match {
           case NoOverrides => Right(configuration.uuidGen)
           case ConstantOverride(uuid: UUID) => Right(Gen.const(uuid))
+          case GeneratorOverrides(gen, tag) if tag == classTag[UUID] => Right(gen)
           case other => Left(SimpleError(s"Invalid override passed for uuid schema: $other"))
         }
         generator.map(_.map(uuid => if (configuration.preserialiseLogicalTypes) uuid.toString else uuid))
@@ -176,11 +183,14 @@ trait AvroCheck {
     schema.getLogicalType match {
       case decimal: Decimal =>
         val generator = overrides match {
-          case NoOverrides => Right(configuration.bigDecimalGen.map(scale(decimal, _)))
-          case ConstantOverride(bd: BigDecimal) => Right(Gen.const(scale(decimal, bd)))
+          case NoOverrides => Right(configuration.bigDecimalGen)
+          case ConstantOverride(bd: BigDecimal) => Right(Gen.const(bd))
+          case GeneratorOverrides(gen, tag) if tag == classTag[BigDecimal] => Right(gen.map(_.asInstanceOf[BigDecimal]))
           case other => Left(SimpleError(s"Invalid override passed for decimal bytes schema: $other"))
         }
-        generator.map(_.map(decimal => if (configuration.preserialiseLogicalTypes) conversion.toBytes(decimal.underlying(), schema, schema.getLogicalType) else decimal))
+        generator.map(_.
+          map(scale(decimal, _)).
+          map(decimal => if (configuration.preserialiseLogicalTypes) conversion.toBytes(decimal.underlying(), schema, schema.getLogicalType) else decimal))
       case _ =>
         val byteArrayGen = overrides match {
           case NoOverrides => Right(Gen.containerOf[Array, Byte](configuration.byteGen))
@@ -197,6 +207,7 @@ trait AvroCheck {
         val decimalGen = overrides match {
           case NoOverrides => Right(configuration.bigDecimalGen)
           case ConstantOverride(bd: BigDecimal) => Right(Gen.const(bd))
+          case GeneratorOverrides(gen, tag) if tag == classTag[BigDecimal] => Right(gen.map(_.asInstanceOf[BigDecimal]))
           case other => Left(SimpleError(s"Invalid override passed for fixed decimal schema: $other"))
         }
         decimalGen.map(gen =>
@@ -261,9 +272,9 @@ trait AvroCheck {
           generatorFromSchema(branchSchema, configuration, branchOverrides)
             .left.map(ComposedError(s"Could not create generator for union branch: ${branchSchema.getFullName}", _))
         }
-      case const: ConstantOverride =>
+      case other =>
         val results = CollectionConverters.toScala(schema.getTypes).map { schema =>
-          generatorFromSchema(schema, configuration, const)
+          generatorFromSchema(schema, configuration, other)
             .left.map(ComposedError(s"Could not create generator for union branch: ${schema.getFullName}", _))
         }.toList
         val gens = results.collect{ case Right(gen) => gen }
@@ -271,9 +282,8 @@ trait AvroCheck {
         gens match {
           case g :: Nil => Right(g) // Only one generator matches override
           case Nil => Left(UnionFailure(CollectionConverters.toScala(schema.getTypes), errors))
-          case _ => Left(SimpleError(s"Override $const matched more than one union in $schema"))
+          case _ => Left(SimpleError(s"Override $other matched more than one union in $schema"))
         }
-      case other => Left(SimpleError(s"Invalid override passed for a union type. You can only pass union selections, constants or no overrides but $other was passed"))
     }
 
   private def eitherSequence[A, B](s: Seq[Either[A, B]]): Either[A, Seq[B]] = s.foldRight(Right(Nil): Either[A, List[B]]) {
@@ -305,23 +315,6 @@ trait AvroCheck {
     }
   }
 
-  sealed trait AvroCheckError { def errorMessages: Seq[String] }
-  case class SimpleError(error: String) extends AvroCheckError {
-    override def errorMessages: Seq[String] = Seq(error)
-  }
-  case class ComposedError(error: String, cause: AvroCheckError) extends AvroCheckError {
-    override def errorMessages: Seq[String] = error +: cause.errorMessages
-  }
-  case class FieldError(field: String, cause: AvroCheckError) extends AvroCheckError {
-    override def errorMessages: Seq[String] = s"Could not create generator for field: $field" +: cause.errorMessages.map("\t" + _)
-  }
-  case class RecordFailure(schema: Schema, errors: Seq[AvroCheckError]) extends AvroCheckError {
-    override def errorMessages: Seq[String] = s"Could not create generator for record: ${schema.getFullName}" +: errors.flatMap(_.errorMessages).map("\t" + _)
-  }
-  case class UnionFailure(schemas: Seq[Schema], errors: Seq[AvroCheckError])extends AvroCheckError {
-    override def errorMessages: Seq[String] = s"Could not create generator for Union: ${schemas.map(_.getFullName).mkString(", ")}" +: errors.flatMap(_.errorMessages).map("\t" + _)
-  }
-
   case class RecordBuildable(schema: Schema) extends Buildable[(String, Any), GenericRecord] {
     override def builder = new GenericRecordBuilder(schema)
   }
@@ -351,5 +344,23 @@ trait AvroCheck {
 
   // TODO handle micro precision, current generator only handles millis precision
   private def toMicros(instant: Instant): Long = TimeUnit.MILLISECONDS.toMicros(instant.toEpochMilli)
+
+  // Internal Error Values
+  sealed trait AvroCheckError { def errorMessages: Seq[String] }
+  case class SimpleError(error: String) extends AvroCheckError {
+    override def errorMessages: Seq[String] = Seq(error)
+  }
+  case class ComposedError(error: String, cause: AvroCheckError) extends AvroCheckError {
+    override def errorMessages: Seq[String] = error +: cause.errorMessages
+  }
+  case class FieldError(field: String, cause: AvroCheckError) extends AvroCheckError {
+    override def errorMessages: Seq[String] = s"Could not create generator for field: $field" +: cause.errorMessages.map("\t" + _)
+  }
+  case class RecordFailure(schema: Schema, errors: Seq[AvroCheckError]) extends AvroCheckError {
+    override def errorMessages: Seq[String] = s"Could not create generator for record: ${schema.getFullName}" +: errors.flatMap(_.errorMessages).map("\t" + _)
+  }
+  case class UnionFailure(schemas: Seq[Schema], errors: Seq[AvroCheckError])extends AvroCheckError {
+    override def errorMessages: Seq[String] = s"Could not create generator for Union: ${schemas.map(_.getFullName).mkString(", ")}" +: errors.flatMap(_.errorMessages).map("\t" + _)
+  }
 
 }

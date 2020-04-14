@@ -60,8 +60,8 @@ object UnionSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
           val overrides = selectNamedUnion("Baz")
           that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         },
-        test("should not let you set override keys for a union") {
-          val overrides = overrideKeys("int" -> constantOverride(2))
+        test("should not let you set an invalid override for a union") {
+          val overrides = constantOverride(2)
           that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         }
       ),

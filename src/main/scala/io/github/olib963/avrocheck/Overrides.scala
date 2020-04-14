@@ -12,7 +12,9 @@ private[avrocheck] object Overrides {
   case class KeyOverrides(overrides: Map[String, Overrides]) extends Overrides
   case class SelectedUnion(branchName: String, overrides: Overrides) extends Overrides
 
-  class GeneratorOverrides[A] private (val generator: Gen[A], val classTag: ClassTag[A]) extends Overrides
+  class GeneratorOverrides[A] private (val generator: Gen[A], val classTag: ClassTag[A]) extends Overrides {
+    override def toString: String = s"GeneratorOverrides(type = $classTag, generator = $generator)"
+  }
   object GeneratorOverrides {
     def apply[A](generator: Gen[A])(implicit classTag: ClassTag[A]): GeneratorOverrides[A] = new GeneratorOverrides(generator, classTag)
     def unapply(arg: GeneratorOverrides[_]): Option[(Gen[Any], ClassTag[_ <: Any])] = Some((arg.generator, arg.classTag))

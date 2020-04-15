@@ -39,7 +39,7 @@
         "size": 4,
         "logicalType": "decimal",
         "scale": 4,
-        "precision": 7
+        "precision": 9
       }
     },
     {

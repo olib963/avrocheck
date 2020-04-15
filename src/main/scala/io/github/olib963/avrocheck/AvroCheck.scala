@@ -193,7 +193,7 @@ trait AvroCheck {
           case other => Left(SimpleError(s"Invalid override passed for decimal bytes schema: $other"))
         }
         generator.map(_.
-          map(scale(decimal, _)).
+          map(scaleAndCapPrecision(decimal, _)).
           map(decimal => if (configuration.preserialiseLogicalTypes) conversion.toBytes(decimal.underlying(), schema, schema.getLogicalType) else decimal))
       case _ =>
         val byteArrayGen = overrides match {
@@ -215,7 +215,7 @@ trait AvroCheck {
           case other => Left(SimpleError(s"Invalid override passed for fixed decimal schema: $other"))
         }
         decimalGen.map(gen =>
-          gen.map(scale(decimal, _))
+          gen.map(scaleAndCapPrecision(decimal, _))
             .map(capFixedDecimal(_, schema.getFixedSize, decimal))
             .map(decimal => if (configuration.preserialiseLogicalTypes) conversion.toFixed(decimal.underlying(), schema, schema.getLogicalType) else decimal))
       case _ =>
@@ -331,16 +331,23 @@ trait AvroCheck {
     override def builder = new GenericRecordBuilder(schema)
   }
 
-  // TODO need to cap decimal at precision to 10^precision
-  private def scale(decimal: Decimal, bigDecimal: BigDecimal): BigDecimal =
-    bigDecimal.setScale(decimal.getScale, RoundingMode.HALF_UP)
+  private val TEN = BigDecimal(10)
+
+  private def scaleAndCapPrecision(decimal: Decimal, bigDecimal: BigDecimal): BigDecimal = {
+    val maxPower = decimal.getPrecision - decimal.getScale
+    val maximumValue = TEN.pow(maxPower) - TEN.pow(-decimal.getScale)
+    absoluteCap(bigDecimal, maximumValue).setScale(decimal.getScale, RoundingMode.HALF_UP)
+  }
 
   private def capFixedDecimal(bigDecimal: BigDecimal, size: Int, decimal: Decimal): BigDecimal = {
     // First byte at least is used for sign hence size - 1
     val maxUnscaled = BigInt(256).pow(size - 1) - 1
     val max = BigDecimal(maxUnscaled, decimal.getScale)
-    if(max < bigDecimal.abs) max * bigDecimal.signum else bigDecimal
+    absoluteCap(bigDecimal, max)
   }
+
+  private def absoluteCap(bigDecimal: BigDecimal, cap: BigDecimal): BigDecimal =
+    if(cap < bigDecimal.abs) cap * bigDecimal.signum else bigDecimal
 
   // The following functions drop extra unused precision such that a round trip of serialise -> deserialise gives the same value
   private def timeMillis(localTime: LocalTime): LocalTime = {

@@ -20,8 +20,11 @@ private[avrocheck] object Overrides {
     def unapply(arg: GeneratorOverrides[_]): Option[(Gen[Any], ClassTag[_ <: Any])] = Some((arg.generator, arg.classTag))
   }
 
+  case class ArrayGenerationOverrides(sizeGenerator: Gen[Int], elementOverrides: Overrides) extends Overrides
+  case class ArrayOverrides(overrideList: Seq[Overrides]) extends Overrides
+
   // TODO other possible overrides:
-  // - ArrayOverride: allow Gen[Int] for size, constant collection, Gen[A] to generate elements
-  // - MapOverride: allow Gen[Int] for size, constant map, Gen[A] to generate values, Gen[String] generate keys
+  // - MapGenerationOverride: allow Gen[Int] for size, overrides to generate values, Gen[String] generate keys,
+  // - MapOverrides: Map[String, Overrides]
 }
 

@@ -95,6 +95,29 @@ object CompositeSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
           val overrides = overrideKeys("fixed" -> constantOverride(bytes))
           forAll(genFromSchema(schema, overrides = overrides))(r =>
             that(r.get("fixed"), isEqualTo[AnyRef](fixedBytes)))
+        },
+        test("should allow you to override array generation") {
+          val overrides = overrideKeys("longArray" -> arrayGenerationOverride(sizeGenerator = Gen.oneOf(5, 10), generatorOverride(Gen.posNum[Long])))
+          forAll(genFromSchema(schema, overrides = overrides)){r =>
+            val array = toScala(r.get("longArray").asInstanceOf[java.util.List[Long]])
+            val elementAssertion = that(array.forall(_ >= 0), s"Array value ($array) should only contain non negative longs")
+            val sizeAssertion = that(array, hasSize[Long](5)).or(that(array, hasSize[Long](10)))
+            sizeAssertion.and(elementAssertion)
+          }
+        },
+        test("should allow you to explicitly set overrides"){
+          val overrides = overrideKeys("longArray" -> arrayOverride(List(generatorOverride(Gen.posNum[Long]), constantOverride(1L))))
+          forAll(genFromSchema(schema, overrides = overrides)){r =>
+            val array = toScala(r.get("longArray").asInstanceOf[java.util.List[Long]])
+            val firstElement = array.headOption
+            val firstElementAssertion = that(firstElement.exists(_ >= 0), s"First element of the array ($firstElement) should only contain non negative longs")
+
+            val secondElement = array.tail.headOption
+            val secondElementAssertion = that(secondElement.contains(1L), s"Second element of the array ($secondElement) should be 1")
+
+            val sizeAssertion = that(array, hasSize[Long](2))
+            all(Seq(sizeAssertion, firstElementAssertion, secondElementAssertion))
+          }
         }
       )
     )

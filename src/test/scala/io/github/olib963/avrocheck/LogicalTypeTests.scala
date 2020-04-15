@@ -54,13 +54,14 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
           bigDecimalGen = Gen.const(decimal)
         )
 
+        val bigDecimalCap = BigDecimal("999.9999") // Max value allowed in the schema
         val expectedRecord = new RecordBuilder(schema)
           .set("uuid", uuid)
           .set("timestampMillis", instant)
           .set("timestampMicros", instant)
           .set("timeMicros", time)
           .set("timeMillis", time)
-          .set("decimal", decimal)
+          .set("decimal", bigDecimalCap)
           .set("decimalFixed", maxDecimalWith4Bytes)
           .set("date", date)
           .build()
@@ -139,11 +140,12 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
   private val localTimeGenerator = Configuration.localTimeArb.arbitrary
 
   private def validOverrideSuite = suite("Valid overrides",
-    suite("Constant Overrides", validConstants.map {
+    suite("Constant Overrides", bigDecimalPrecisionTests +: validConstants.map {
       case (key, value) => test(s"Should allow value $value for key $key") {
         val overrides = overrideKeys(key -> constantOverride(value))
         forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get(key), isEqualTo[AnyRef](value)))
       }
+
     }),
     suite("Generator Overrides", Seq(
       test(s"Should allow a generator override for uuids") {
@@ -182,6 +184,19 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
       },
     )))
 
+  private def bigDecimalPrecisionTests = suite("BigDecimal precision capping",
+    test("BigDecimals should be positively capped at precision"){
+      // Precision 7, scale 4 => must be less that 10^3
+      val overrides = overrideKeys("decimal" -> constantOverride(BigDecimal(1000)))
+      forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("decimal"), isEqualTo[AnyRef](BigDecimal("999.9999"))))
+    },
+    test("BigDecimals should be negatively capped at precision"){
+      // Precision 7, scale 4 => must be less that 10^3
+      val overrides = overrideKeys("decimal" -> constantOverride(BigDecimal(-1000)))
+      forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("decimal"), isEqualTo[AnyRef](BigDecimal("-999.9999"))))
+    },
+  )
+
   private def preserialisedSuite = suite("Pre serialising",
     test("generating a random record using constants in the configuration") {
       val uuidString = "aad1f498-5a65-4844-b88c-ac8b94466502"
@@ -200,7 +215,7 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
         preserialiseLogicalTypes = true
       )
 
-      val decimalBytes = Array[Byte](18, 27, 122, -109, 41, -31, -107, 23, -13, 80)
+      val decimalBytes = Array[Byte](0, -104, -106, 127) // Byte array representation of 999.9999
       val fixedDecimalSchema = schema.getField("decimalFixed").schema()
       val expectedRecord = new RecordBuilder(schema)
         .set("uuid", uuidString)
@@ -209,7 +224,7 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
         .set("timeMicros", 86399999000L)
         .set("timeMillis", 86399999)
         .set("decimal", ByteBuffer.wrap(decimalBytes))
-        .set("decimalFixed", new GenericData.Fixed(fixedDecimalSchema, Array[Byte](0, -1, -1, -1)))
+        .set("decimalFixed", new GenericData.Fixed(fixedDecimalSchema, Array[Byte](0, -1, -1, -1))) // Byte array repesentation of 1677.7215
         .set("date", 2147483647)
         .build()
       forAll(genFromSchema(schema, configuration))(r => recordsShouldMatch(r, expectedRecord))

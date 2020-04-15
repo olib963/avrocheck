@@ -23,16 +23,20 @@ import reflect.classTag
 trait AvroCheck {
 
   // Override definitions
+  val noOverrides: Overrides = NoOverrides
   def overrideKeys(overrides: (String, Overrides)): Overrides = KeyOverrides(Map(overrides))
 
-  def overrideKeys(overrides: (String, Overrides), moreOverrides: (String, Overrides)*): Overrides =
-    KeyOverrides(Map(overrides +: moreOverrides: _*))
+  // Second override exists such that the compiler can distinguish between these two functions. Especially useful when using implicit transformations
+  def overrideKeys(overrides: (String, Overrides), secondOverride: (String, Overrides), moreOverrides: (String, Overrides)*): Overrides =
+    KeyOverrides(Map(overrides +:secondOverride +: moreOverrides: _*))
 
   def selectNamedUnion(branchName: String, overrides: Overrides = NoOverrides): Overrides = SelectedUnion(branchName, overrides)
 
-  // TODO should constantOverride be remodelled as generatorOverride(Gen.const(value))?
   def constantOverride[A](value: A): Overrides = ConstantOverride(value)
   def generatorOverride[A: ClassTag](gen: Gen[A]): Overrides = GeneratorOverrides(gen)
+
+  def arrayOverride(elements: Seq[Overrides]): Overrides = ArrayOverrides(elements)
+  def arrayGenerationOverride(sizeGenerator: Gen[Int] = Gen.posNum[Int], elementOverrides: Overrides = NoOverrides): Overrides = ArrayGenerationOverrides(sizeGenerator, elementOverrides)
 
   // Schema functions
   def schemaFromResource(schemaResource: String): Schema =
@@ -240,10 +244,18 @@ trait AvroCheck {
     symbolGen.map(_.map(new EnumSymbol(schema, _)))
   }
 
-  private def arrayGenerator(schema: Schema, configuration: Configuration, overrides: Overrides): AttemptedGen[java.util.List[Any]] =
-    generatorFromSchema(schema.getElementType, configuration, overrides)
+  private def arrayGenerator(schema: Schema, configuration: Configuration, overrides: Overrides): AttemptedGen[java.util.List[Any]] = overrides match {
+    case ArrayOverrides(elements) =>
+      eitherSequence(elements.map(o => generatorFromSchema(schema.getElementType, configuration, o)))
+        .map(Gen.sequence(_))
+        .left.map(ComposedError("Could not create a list generator", _))
+    case ArrayGenerationOverrides(sizeGen, elementOverrides) => generatorFromSchema(schema.getElementType, configuration, elementOverrides)
+      .map(e => sizeGen.flatMap(size => Gen.listOfN(size, e).map(CollectionConverters.toJava(_: Seq[Any]))))
+      .left.map(ComposedError("Could not create a list generator", _))
+    case _ => generatorFromSchema(schema.getElementType, configuration, overrides)
       .map(e => Gen.listOf(e).map(CollectionConverters.toJava(_: Seq[Any])))
       .left.map(ComposedError("Could not create a list generator", _))
+  }
 
   private def mapGenerator(schema: Schema, configuration: Configuration, overrides: Overrides): AttemptedGen[java.util.Map[String, Any]] =
     generatorFromSchema(schema.getValueType, configuration, overrides).map { valueGenerator =>
@@ -319,6 +331,7 @@ trait AvroCheck {
     override def builder = new GenericRecordBuilder(schema)
   }
 
+  // TODO need to cap decimal at precision to 10^precision
   private def scale(decimal: Decimal, bigDecimal: BigDecimal): BigDecimal =
     bigDecimal.setScale(decimal.getScale, RoundingMode.HALF_UP)
 

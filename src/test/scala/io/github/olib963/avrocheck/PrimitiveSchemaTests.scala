@@ -45,7 +45,6 @@ object PrimitiveSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
             .set("int", 8)
             .set("null", null)
             .build()
-          // TODO how to check bytes without override?
           forAll(genFromSchema(schema, configuration, overrides = overrideKeys("bytes" -> constantOverride(bytes))))(
             r => recordsShouldMatch(r, expectedRecord))
         }, invalidOverrideSuite) ++ validOverrideSuites
@@ -110,7 +109,6 @@ object PrimitiveSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
     ("int", 40, constantOverride(40)),
     ("null", null, constantOverride(null)))
 
-  // TODO move to JT?
   private def fail(reason: String): Assertion = () => AssertionResult.failure(reason)
 
   private def isBetween[A](min: A, max: A)(implicit ordering: Ordering[A]): Matcher[A] =

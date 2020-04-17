@@ -26,7 +26,6 @@ trait AvroCheck {
   val noOverrides: Overrides = NoOverrides
   def overrideKeys(overrides: (String, Overrides)): Overrides = KeyOverrides(Map(overrides))
 
-  // Second override exists such that the compiler can distinguish between these two functions. Especially useful when using implicit transformations
   def overrideKeys(overrides: (String, Overrides), secondOverride: (String, Overrides), moreOverrides: (String, Overrides)*): Overrides =
     KeyOverrides(Map(overrides +:secondOverride +: moreOverrides: _*))
 
@@ -42,7 +41,6 @@ trait AvroCheck {
   def schemaFromResource(schemaResource: String): Schema =
     new Schema.Parser().parse(Source.fromResource(schemaResource).mkString)
 
-  // TODO should we allow a more generic implementation such as : Gen[AvroData] where AvroData = Record | Union(record, schema) | Datum(any)?
   def genFromSchema(schema: Schema, configuration: Configuration = Configuration.Default, overrides: Overrides = NoOverrides): Gen[GenericRecord] = schema.getType match {
     case Type.RECORD => recordGenerator(schema, configuration, overrides) match {
       case Right(gen) => gen
@@ -362,7 +360,6 @@ trait AvroCheck {
 
   private def dropNanos(instant: Instant) = Instant.ofEpochMilli(instant.toEpochMilli)
 
-  // TODO handle micro precision, current generator only handles millis precision
   private def toMicros(instant: Instant): Long = TimeUnit.MILLISECONDS.toMicros(instant.toEpochMilli)
 
   // Internal Error Values

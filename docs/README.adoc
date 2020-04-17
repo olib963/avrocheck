@@ -5,7 +5,7 @@ image::https://circleci.com/gh/olib963/avrocheck.svg?style=svg[link="https://cir
 image::https://img.shields.io/maven-central/v/io.github.olib963/avrocheck.svg?style=plastic[link="http://mvnrepository.com/artifact/io.github.olib963/avrocheck", float="left"]
 --
 
-Small library to generate random ``GenericRecord``s from a given avro schema.
+Small library to generate random ``GenericRecord``s from a given https://avro.apache.org/[Avro] schema using https://www.scalacheck.org/[ScalaCheck].
 
 == Why?
 

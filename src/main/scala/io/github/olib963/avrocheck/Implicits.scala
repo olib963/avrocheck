@@ -15,7 +15,7 @@ object Implicits {
 
   import scala.language.implicitConversions
 
-  case class PreserialiseLogicalTypes(shouldPreserialise: Boolean)
+  case class PreserialiseLogicalTypes(shouldPreserialise: Boolean) extends AnyVal
   /**
    * Allows implicit configuration of whether or not logical types should be pre-serialised.
    * @see [[Implicits.configFromArbitraries]]

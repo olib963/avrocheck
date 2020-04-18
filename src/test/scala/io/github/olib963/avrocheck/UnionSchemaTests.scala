@@ -77,7 +77,7 @@ object UnionSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
         },
         test("selecting and overriding a branch") {
           val overrides =
-            selectNamedUnion("Bar", overrideKeys("double" -> constantOverride(1.0), "string" -> constantOverride("bar")))
+            selectNamedUnion("Bar", overrideFields("double" -> constantOverride(1.0), "string" -> constantOverride("bar")))
 
           val expectedUnionSelected = new RecordBuilder(barBranch)
             .set("double", 1.0)

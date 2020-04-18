@@ -2,10 +2,10 @@ package io.github.olib963.avrocheck.documentation
 
 import java.time.LocalDate
 
+import io.github.olib963.avrocheck._
 import org.apache.avro.Schema
 import org.scalacheck.Prop.forAll
 import org.scalacheck.{Arbitrary, Gen, Properties}
-import io.github.olib963.avrocheck._
 
 object LogicalTypeConfiguration extends Properties("Logical type configuration"){
 

@@ -112,15 +112,15 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
   private def invalidSuite = suite("Invalid overrides",
     suite("Invalid constants", invalidConstantOverrides.map {
       case (key, value) =>
-        test(s"Should not allow value $value for key $key") {
-          val overrides = overrideKeys(key -> constantOverride(value))
+        test(s"Should not allow value $value for field $key") {
+          val overrides = overrideFields(key -> constantOverride(value))
           that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         }
     }),
     suite("Invalid generators", invalidGeneratorOverrides.map {
       case (key, keyOverride) =>
-        test(s"Should not allow an invalid generator for key $key") {
-          val overrides = overrideKeys(key -> keyOverride)
+        test(s"Should not allow an invalid generator for field $key") {
+          val overrides = overrideFields(key -> keyOverride)
           that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         }
     })
@@ -141,45 +141,45 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
 
   private def validOverrideSuite = suite("Valid overrides",
     suite("Constant Overrides", bigDecimalPrecisionTests +: validConstants.map {
-      case (key, value) => test(s"Should allow value $value for key $key") {
-        val overrides = overrideKeys(key -> constantOverride(value))
+      case (key, value) => test(s"Should allow value $value for field $key") {
+        val overrides = overrideFields(key -> constantOverride(value))
         forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get(key), isEqualTo[AnyRef](value)))
       }
 
     }),
     suite("Generator Overrides", Seq(
       test(s"Should allow a generator override for uuids") {
-        val overrides = overrideKeys("uuid" -> generatorOverride(Gen.uuid))
+        val overrides = overrideFields("uuid" -> generatorOverride(Gen.uuid))
         forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("uuid"), hasType[UUID]))
       },
       test(s"Should allow a generator override for timestampMillis") {
-        val overrides = overrideKeys("timestampMillis" -> generatorOverride(instantGenerator))
+        val overrides = overrideFields("timestampMillis" -> generatorOverride(instantGenerator))
         forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("timestampMillis"), hasType[Instant]))
       },
       test(s"Should allow a generator override for timestampMicros") {
-        val overrides = overrideKeys("timestampMicros" -> generatorOverride(instantGenerator))
+        val overrides = overrideFields("timestampMicros" -> generatorOverride(instantGenerator))
         forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("timestampMicros"), hasType[Instant]))
       },
       test(s"Should allow a generator override for timeMicros") {
-        val overrides = overrideKeys("timeMicros" -> generatorOverride(localTimeGenerator))
+        val overrides = overrideFields("timeMicros" -> generatorOverride(localTimeGenerator))
         forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("timeMicros"), hasType[LocalTime]))
       },
       test(s"Should allow a generator override for decimal") {
-        val overrides = overrideKeys("decimal" -> generatorOverride(Arbitrary.arbBigDecimal.arbitrary))
+        val overrides = overrideFields("decimal" -> generatorOverride(Arbitrary.arbBigDecimal.arbitrary))
         forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("decimal"), hasType[BigDecimal]))
       },
       test(s"Should allow a generator override for fixed decimals") {
         val biggerThanMaxValue = Arbitrary.arbBigDecimal.arbitrary.suchThat(_ >= 0).map(_ + maxDecimalWith4Bytes)
-        val overrides = overrideKeys("decimalFixed" -> generatorOverride(biggerThanMaxValue))
+        val overrides = overrideFields("decimalFixed" -> generatorOverride(biggerThanMaxValue))
         forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("decimalFixed"), isEqualTo[AnyRef](maxDecimalWith4Bytes)))
       },
       test(s"Should allow a generator override for timeMillis") {
-        val overrides = overrideKeys("timeMillis" -> generatorOverride(localTimeGenerator))
+        val overrides = overrideFields("timeMillis" -> generatorOverride(localTimeGenerator))
         forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("timeMillis"), hasType[LocalTime]))
       },
       test(s"Should allow a generator override for date") {
         val date = LocalDate.of(2020, 3, 2)
-        val overrides = overrideKeys("date" -> generatorOverride(Gen.const(date)))
+        val overrides = overrideFields("date" -> generatorOverride(Gen.const(date)))
         forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("date"), isEqualTo[AnyRef](date)))
       },
     )))
@@ -187,12 +187,12 @@ object LogicalTypeTests extends SchemaGeneratorSuite with AllJavaTestSyntax with
   private def bigDecimalPrecisionTests = suite("BigDecimal precision capping",
     test("BigDecimals should be positively capped at precision"){
       // Precision 7, scale 4 => must be less that 10^3
-      val overrides = overrideKeys("decimal" -> constantOverride(BigDecimal(1000)))
+      val overrides = overrideFields("decimal" -> constantOverride(BigDecimal(1000)))
       forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("decimal"), isEqualTo[AnyRef](BigDecimal("999.9999"))))
     },
     test("BigDecimals should be negatively capped at precision"){
       // Precision 7, scale 4 => must be less that 10^3
-      val overrides = overrideKeys("decimal" -> constantOverride(BigDecimal(-1000)))
+      val overrides = overrideFields("decimal" -> constantOverride(BigDecimal(-1000)))
       forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("decimal"), isEqualTo[AnyRef](BigDecimal("-999.9999"))))
     },
   )

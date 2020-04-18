@@ -5,7 +5,7 @@ import java.time.{Instant, LocalDate, LocalTime}
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import io.github.olib963.avrocheck.Overrides.{ArrayGenerationOverrides, ArrayOverrides, ConstantOverride, GeneratorOverrides, KeyOverrides, NoOverrides, SelectedUnion}
+import io.github.olib963.avrocheck.Overrides.{ArrayGenerationOverrides, ArrayOverrides, ConstantOverride, GeneratorOverrides, FieldOverrides, NoOverrides, SelectedUnion}
 import org.apache.avro.Conversions.DecimalConversion
 import org.apache.avro.LogicalTypes.{Date, Decimal, TimeMicros, TimeMillis, TimestampMicros, TimestampMillis}
 import org.apache.avro.{LogicalTypes, Schema}
@@ -268,14 +268,14 @@ private [avrocheck] object Generators {
   def recordGenerator(schema: Schema, configuration: Configuration, overrides: Overrides): AttemptedGen[GenericRecord] = {
     val fieldOverridesFunction: Either[AvroCheckError, String => Overrides] = overrides match {
       case NoOverrides => Right(_ => NoOverrides)
-      case KeyOverrides(mapped) =>
+      case FieldOverrides(mapped) =>
         val schemaFieldNames = CollectionConverters.toScala(schema.getFields).map(_.name)
-        val invalidKeys = mapped.keys.filterNot(schemaFieldNames.contains(_))
-        if (invalidKeys.isEmpty)
+        val invalidFields = mapped.keys.filterNot(schemaFieldNames.contains(_))
+        if (invalidFields.isEmpty)
           Right(fieldName => mapped.getOrElse(fieldName, NoOverrides))
         else
-          Left(SimpleError(s"Invalid keys passed to record override: $invalidKeys, these are not in the schema: $schema"))
-      case other => Left(SimpleError(s"Invalid override passed for a record type! Must be a KeyOverrides or NoOverrides but was $other"))
+          Left(SimpleError(s"Invalid fields passed to record override: $invalidFields, these are not in the schema: $schema"))
+      case other => Left(SimpleError(s"Invalid override passed for a record type! Must be a FieldOverrides or NoOverrides but was $other"))
     }
     fieldOverridesFunction.flatMap { overrideFunction =>
       // Create a generator of (fieldName: String, value: Any)

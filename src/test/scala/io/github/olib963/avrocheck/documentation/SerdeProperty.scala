@@ -47,7 +47,7 @@ object SerdeProperty extends Properties("Serde") {
 
       // Notice that here we do not override age (or in the later schema favourite_colour) because these
       // values are of no interest to our application code
-      overrides = overrideKeys("name" -> name, "favourite_number" -> favourite_number)
+      overrides = overrideFields("name" -> name, "favourite_number" -> favourite_number)
       record <- genFromSchema(schema, overrides = overrides)
     } yield (record, User(name, favNum))
     forAll(generator) { case (record, user) =>
@@ -67,7 +67,7 @@ object SerdeProperty extends Properties("Serde") {
       name <- Arbitrary.arbString.arbitrary
       favNum <- Arbitrary.arbOption[Int].arbitrary
       favourite_number = favNum.map(Int.box).orNull
-      overrides = overrideKeys("name" -> name, "favourite_number" -> favourite_number)
+      overrides = overrideFields("name" -> name, "favourite_number" -> favourite_number)
       record <- genFromSchema(newSchema, overrides = overrides)
     } yield (record, User(name, favNum))
     forAll(generator) { case (record, user) =>

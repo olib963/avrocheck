@@ -16,7 +16,7 @@ trait AvroCheck {
    * @param schema The avro schema to use to generate random values.
    * @param configuration Allows configuration of default generation parameters e.g. the default [[Gen]] for [[String]] values.
    * @param overrides Overrides can be used to customise the generation of arbitrarily nested values without affecting the
-   *                  generation of other values for example [[AvroCheck.overrideKeys]]
+   *                  generation of other values for example [[AvroCheck.overrideFields]]
    * @return A generator that will create a [[GenericRecord]] from the schema as long as the schema is a RECORD or UNION of RECORDs.
    */
   def genFromSchema(schema: Schema, configuration: Configuration = Configuration.Default, overrides: Overrides = NoOverrides): Gen[GenericRecord] = schema.getType match {
@@ -67,9 +67,9 @@ trait AvroCheck {
   def arrayOverride(elements: Seq[Overrides]): Overrides = ArrayOverrides(elements)
 
   /**
-   * @see [[AvroCheck.overrideKeys]]
+   * @see [[AvroCheck.overrideFields]]
    */
-  def overrideKeys(overrides: (String, Overrides)): Overrides = KeyOverrides(Map(overrides))
+  def overrideFields(overrides: (String, Overrides)): Overrides = FieldOverrides(Map(overrides))
 
   /**
    *  For a schema of type "record" you can set an override for any field, any other fields will use default generation.
@@ -110,11 +110,11 @@ trait AvroCheck {
    *
    *  you would be able to pass.
    *  {{{
-   *  overrideKeys("name" -> constantOverride("foo"), "age" -> generatorOverride(Gen.posNum[Int]))
+   *  overrideFields("name" -> constantOverride("foo"), "age" -> generatorOverride(Gen.posNum[Int]))
    *  }}}
    */
-  def overrideKeys(overrides: (String, Overrides), secondOverride: (String, Overrides), moreOverrides: (String, Overrides)*): Overrides =
-    KeyOverrides(Map(overrides +:secondOverride +: moreOverrides: _*))
+  def overrideFields(overrides: (String, Overrides), secondOverride: (String, Overrides), moreOverrides: (String, Overrides)*): Overrides =
+    FieldOverrides(Map(overrides +:secondOverride +: moreOverrides: _*))
 
   /**
    * Allows to select which schema in a union of schemas to generate values for.

@@ -9,7 +9,7 @@ sealed trait Overrides
 private[avrocheck] object Overrides {
   case object NoOverrides extends Overrides
   case class ConstantOverride(value: Any) extends Overrides
-  case class KeyOverrides(overrides: Map[String, Overrides]) extends Overrides
+  case class FieldOverrides(overrides: Map[String, Overrides]) extends Overrides
   case class SelectedUnion(branchName: String, overrides: Overrides) extends Overrides
 
   class GeneratorOverrides[A] private (val generator: Gen[A], val classTag: ClassTag[A]) extends Overrides {

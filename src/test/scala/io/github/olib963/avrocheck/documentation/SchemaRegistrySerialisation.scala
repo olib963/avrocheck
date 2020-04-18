@@ -8,8 +8,6 @@ import org.apache.avro.generic.GenericRecord
 import org.scalacheck.Prop.forAll
 import org.scalacheck.{Gen, Properties}
 
-import scala.util.Try
-
 object SchemaRegistrySerialisation extends Properties("Confluent stack test") {
 
   // Schema of two records named "Foo" and "Bar"

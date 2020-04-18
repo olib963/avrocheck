@@ -96,7 +96,7 @@ include::../src/test/scala/io/github/olib963/avrocheck/documentation/LogicalType
 
 === Overrides
 
-If you want to customise the generation of your `GenericRecord` even more you can provide an implicit `Overrides` object.
+If you want to customise the generation of your `GenericRecord` even more you can provide an explicit/implicit `Overrides` object.
 
 [source, scala]
 ----

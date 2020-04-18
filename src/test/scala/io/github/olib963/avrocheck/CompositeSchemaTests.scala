@@ -60,22 +60,22 @@ object CompositeSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
       suite("Invalid Overrides",
         test("should not allow explicit enum symbol overrides") {
           val enumSymbol = new GenericData.EnumSymbol(schema.getField("enum").schema(), "b")
-          val overrides = overrideKeys("enum" -> constantOverride(enumSymbol))
+          val overrides = overrideFields("enum" -> constantOverride(enumSymbol))
           that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         },
         test("should not allow you to select an enum that doesn't exist") {
-          val overrides = overrideKeys("enum" -> constantOverride("d"))
+          val overrides = overrideFields("enum" -> constantOverride("d"))
           that(Try(genFromSchema(schema, overrides = overrides)) , isFailure[Gen[GenericRecord]])
         },
         test("should not allow a fixed override if the byte array is of the wrong size") {
           val smallAssertion = {
             // Too small
-            val overrides = overrideKeys("fixed" -> constantOverride(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14)))
+            val overrides = overrideFields("fixed" -> constantOverride(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14)))
             that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
           }
           val bigAssertion = {
             // Too big
-            val overrides = overrideKeys("fixed" -> constantOverride(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)))
+            val overrides = overrideFields("fixed" -> constantOverride(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)))
             that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
           }
           smallAssertion.and(bigAssertion)
@@ -85,19 +85,20 @@ object CompositeSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
         test("should let you select a specific enum") {
           val enumValue = "c"
           val enumSymbol = new GenericData.EnumSymbol(schema.getField("enum").schema(), enumValue)
-          val overrides = overrideKeys("enum" -> constantOverride(enumValue))
+          val overrides = overrideFields("enum" -> constantOverride(enumValue))
           forAll(genFromSchema(schema, overrides = overrides))(r =>
             that(r.get("enum"), isEqualTo[AnyRef](enumSymbol)))
         },
         test("should let you override a fixed byte array with the correct size") {
           val bytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
           val fixedBytes = new GenericData.Fixed(schema.getField("fixed").schema(), bytes)
-          val overrides = overrideKeys("fixed" -> constantOverride(bytes))
+          val overrides = overrideFields("fixed" -> constantOverride(bytes))
           forAll(genFromSchema(schema, overrides = overrides))(r =>
             that(r.get("fixed"), isEqualTo[AnyRef](fixedBytes)))
         },
+        // The following tests also exist in documentation tests but I think it's worth keeping them here too.
         test("should allow you to override array generation") {
-          val overrides = overrideKeys("longArray" -> arrayGenerationOverride(sizeGenerator = Gen.oneOf(5, 10), generatorOverride(Gen.posNum[Long])))
+          val overrides = overrideFields("longArray" -> arrayGenerationOverride(sizeGenerator = Gen.oneOf(5, 10), generatorOverride(Gen.posNum[Long])))
           forAll(genFromSchema(schema, overrides = overrides)){r =>
             val array = toScala(r.get("longArray").asInstanceOf[java.util.List[Long]])
             val elementAssertion = that(array.forall(_ >= 0), s"Array value ($array) should only contain non negative longs")
@@ -106,7 +107,7 @@ object CompositeSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
           }
         },
         test("should allow you to explicitly set overrides"){
-          val overrides = overrideKeys("longArray" -> arrayOverride(List(generatorOverride(Gen.posNum[Long]), constantOverride(1L))))
+          val overrides = overrideFields("longArray" -> arrayOverride(List(generatorOverride(Gen.posNum[Long]), constantOverride(1L))))
           forAll(genFromSchema(schema, overrides = overrides)){r =>
             val array = toScala(r.get("longArray").asInstanceOf[java.util.List[Long]])
             val firstElement = array.headOption

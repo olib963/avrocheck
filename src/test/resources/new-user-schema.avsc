@@ -25,7 +25,7 @@
         "string",
         "null"
       ],
-      "deafult": "null"
+      "default": "null"
     }
     /* end::new_field[] */
   ]

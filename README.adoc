@@ -169,7 +169,7 @@ by adding the following:
     "string",
     "null"
   ],
-  "deafult": "null"
+  "default": "null"
 }
 ----
 

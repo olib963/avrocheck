@@ -11,8 +11,8 @@ A small library to generate random ``GenericRecord``s from a given https://avro.
 
 == Why?
 
-First of all we always want to make sure that our custom deserialisation code is able to deserialise any message
-using it's reader schema that was written using the _writer schema_.
+First of all we always want to make sure our custom deserialisation code is able to deserialise any message
+using its reader schema that was written using the _writer schema_.
 
 Example schema:
 
@@ -137,7 +137,6 @@ object ApplicationProperty extends Properties("My application") {
 
   val schema = schemaFromResource("user-schema.avsc")
 
-  // TODO gen overrides
   property("persists users with negative favourite numbers and gives them a bonus") = {
     val generator = for {
       name <- Gen.alphaNumStr
@@ -181,7 +180,7 @@ object ApplicationProperty extends Properties("My application") {
 }
 ----
 
-Due to the compatability features of avro, producers upstream of you should be able to make backwards
+Due to the compatibility features of Avro, producers upstream of you should be able to make backwards
 compatible changes without affecting your codebase. It is easy now to verify this by just updating the schema file. For example
 by adding the following:
 
@@ -201,8 +200,8 @@ to the above schema, the example tests all still pass.
 
 == How?
 
-Import `io.github.olib963.avrocheck.\_` to get access to generation from avro schemas. Configuration can be provided
-explicitly (default) or implicitly (by importing `io.github.olib963.avrocheck.Implicits._`). There is a utility function to read
+Import `io.github.olib963.avrocheck.\_` to get access to generation from Avro schemas. Configuration can be provided
+explicitly or implicitly (by importing `io.github.olib963.avrocheck.Implicits._`). There is a utility function to read
 schemas from a resource file. The schema you are passing currently must either be for a `RECORD` or a `UNION` of ``RECORD``s.
 
 To change the default generators used by the `Gen` you can either explicitly pass the configuration or provide an implicit
@@ -218,7 +217,7 @@ import org.apache.avro.generic.GenericRecord
 import org.scalacheck.Prop.forAll
 import org.scalacheck.{Arbitrary, Gen, Properties}
 
-class RecordGeneration extends Properties("generating random values from schema") {
+object RecordGeneration extends Properties("generating random values from schema") {
 
   private val schema: Schema = schemaFromResource("user-schema.avsc")
 
@@ -260,8 +259,8 @@ Logical types will automatically be generated using the types:
 
 If you want to provide overrides or implicit ``Arbitrary``s for logical types you must use these types.
 
-If you don't want to go through the hassle of adding logical type conversions to your serialiser you can
-set the configuration option `preserialiseLogicalTypes` to `true` and the values will automatically be turned into their underlying primitives.
+If you don't want to go through the hassle of adding logical type conversions to your serialiser you can set the
+configuration option `preserialiseLogicalTypes` to `true`, and the values will automatically be transformed into their underlying primitives.
 
 [source, scala]
 ----
@@ -274,7 +273,7 @@ import org.scalacheck.Prop.forAll
 import org.scalacheck.{Arbitrary, Gen, Properties}
 import io.github.olib963.avrocheck._
 
-class LogicalTypeConfiguration extends Properties("Logical type configuration"){
+object LogicalTypeConfiguration extends Properties("Logical type configuration"){
 
   // This schema has a field "date" with schema {"type": "int", "logicalType": "date"}
   val schema: Schema = io.github.olib963.avrocheck.schemaFromResource("record-with-logical-types.avsc")
@@ -324,22 +323,26 @@ If you want to customise the generation of your `GenericRecord` even more you ca
 
 [source, scala]
 ----
-implicit val overrides: Overrides = selectUnion("Bar")
-val gen = genFromSchema(schema)
+package io.github.olib963.avrocheck.documentation
+
+import org.scalacheck.Properties
+
+object OverrideConfiguration extends Properties("Overriding generation") {
+
+  // Document:
+  // - overrideKeys
+  // - selectNamedUnion
+  // - constantOverride
+  // - generatorOverride
+  // - arrayGenerationOverride
+  // - arrayOverride
+}
 ----
 
-Document:
-- overrideKeys
-- selectNamedUnion
-- constantOverride
-- generatorOverride
-- arrayGenerationOverride
-- arrayOverride
 
 == Confluent Stack Warning
 
-If you are using this library to run integration tests that integrate with Kafka and the confluent stack you should be aware
-of this:
+If you are using this library to run tests that integrate with Kafka and the confluent stack you should be aware of this:
 
 === Schema Registry with Unions
 
@@ -349,26 +352,50 @@ instead you will need to do this:
 
 [source, scala]
 ----
-import org.apache.avro.generic.GenericRecord
-import org.scalacheck.Gen
-import io.github.olib963.avrocheck.AvroCheck
+package io.github.olib963.avrocheck.documentation
 
-class MyTest extends AvroCheck {
+import io.confluent.kafka.schemaregistry.client.{MockSchemaRegistryClient, SchemaRegistryClient}
+import io.confluent.kafka.serializers.{AbstractKafkaAvroSerDeConfig, KafkaAvroSerializer, NonRecordContainer}
+import io.github.olib963.avrocheck._
+import org.apache.avro.Schema
+import org.apache.avro.generic.GenericRecord
+import org.scalacheck.Prop.forAll
+import org.scalacheck.{Gen, Properties}
+
+import scala.util.Try
+
+object SchemaRegistrySerialisation extends Properties("Confluent stack test") {
 
   // Schema of two records named "Foo" and "Bar"
-  private val unionSchema = schemaFromResource("my-union-schema.avsc")
+  private val unionSchema = schemaFromResource("union-of-records.avsc")
   private val gen: Gen[GenericRecord] = genFromSchema(unionSchema)
 
-  def serialise() {
-    val genericRecord = gen.sample.get
-    val serialiser = new KafkaAvroSerialiser(new MySchemaRegistryClient())
+  property("serialises with correct schema") = forAll(gen){ genericRecord =>
+    val schemaRegistryClient = new MockSchemaRegistryClient()
+    val config = Map(
+      AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG -> "http://localhost:8080",
+      AbstractKafkaAvroSerDeConfig.AUTO_REGISTER_SCHEMAS -> true,
+    )
+    val serialiser = new KafkaAvroSerializer(schemaRegistryClient, CollectionConverters.toJava(config))
 
-    // This is NOT what you want, this will post the schema for "Foo" or "Bar" only, not the union of both
-    serialiser.serialise("my-topic", genericRecord)
+    // This is NOT what you want, this will post the schema for the specific branch of the union, not the union as a whole.
+    val incorrectlySerialisedTopic = "wrong-topic"
+    serialiser.serialize(incorrectlySerialisedTopic, genericRecord)
 
-    // This is what you want, this will post the union schema for the topic and serialise the
-    // genericRecord using "Foo" or "Bar" respectively
-    serialiser.serialise("my-topic", new NonRecordContainer(unionSchema, genericRecord))
+    // This is what you want, this will post the union schema for the topic
+    val correctlySerialisedTopic = "right-topic"
+    serialiser.serialize(correctlySerialisedTopic, new NonRecordContainer(unionSchema, genericRecord))
+
+    (schemaRegistryClient.latestSchemaForTopic(incorrectlySerialisedTopic) != unionSchema) &&
+      (schemaRegistryClient.latestSchemaForTopic(correctlySerialisedTopic) == unionSchema)
   }
+
+  implicit class SchemaRegistryOps(schemaRegistryClient: SchemaRegistryClient) {
+    def latestSchemaForTopic(topicName: String): Schema = {
+      val metadata = schemaRegistryClient.getLatestSchemaMetadata(s"$topicName-value")
+      new Schema.Parser().parse(metadata.getSchema)
+    }
+  }
+
 }
 ----

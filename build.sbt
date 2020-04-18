@@ -9,14 +9,23 @@ val scala12 = "2.12.10"
 scalaVersion := scala12
 val scalacheckVersion = "1.14.0"
 
+// Resolver used to get avro schema registry serialiser for documentation tests
+resolvers += "confluent" at "http://packages.confluent.io/maven/"
 // Snapshot repo used for test framework. Remove this when 0.3.0 is released
 resolvers += Resolver.sonatypeRepo("snapshots")
 
 libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck" % scalacheckVersion,
   "org.apache.avro" % "avro" % "1.9.2",
-  "com.sksamuel.avro4s" %% "avro4s-core" % "3.0.4" % Test
 )
+
+val testDeps = Seq(
+  "com.sksamuel.avro4s" %% "avro4s-core" % "3.0.4",
+  "io.confluent" % "kafka-avro-serializer" % "5.3.0",
+  "org.apache.kafka" % "kafka-clients" % "2.5.0"
+)
+
+libraryDependencies ++= testDeps.map(_ % Test)
 
 javatestScalacheckVersion := Some(scalacheckVersion)
 

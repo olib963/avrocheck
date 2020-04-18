@@ -13,7 +13,6 @@ object ApplicationProperty extends Properties("My application") {
 
   val schema = schemaFromResource("user-schema.avsc")
 
-  // TODO gen overrides
   property("persists users with negative favourite numbers and gives them a bonus") = {
     val generator = for {
       name <- Gen.alphaNumStr

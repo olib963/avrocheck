@@ -7,7 +7,7 @@ import org.scalacheck.Prop.forAll
 import org.scalacheck.{Arbitrary, Gen, Properties}
 import io.github.olib963.avrocheck._
 
-class LogicalTypeConfiguration extends Properties("Logical type configuration"){
+object LogicalTypeConfiguration extends Properties("Logical type configuration"){
 
   // This schema has a field "date" with schema {"type": "int", "logicalType": "date"}
   val schema: Schema = io.github.olib963.avrocheck.schemaFromResource("record-with-logical-types.avsc")

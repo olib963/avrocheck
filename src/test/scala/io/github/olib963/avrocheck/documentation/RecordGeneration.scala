@@ -6,7 +6,7 @@ import org.apache.avro.generic.GenericRecord
 import org.scalacheck.Prop.forAll
 import org.scalacheck.{Arbitrary, Gen, Properties}
 
-class RecordGeneration extends Properties("generating random values from schema") {
+object RecordGeneration extends Properties("generating random values from schema") {
 
   private val schema: Schema = schemaFromResource("user-schema.avsc")
 

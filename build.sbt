@@ -1,7 +1,7 @@
 name := "avrocheck"
 organization := "io.github.olib963"
 
-version := "0.1.0"
+version := "0.2.0-SNAPSHOT"
 
 val scala13 = "2.13.1"
 val scala12 = "2.12.10"

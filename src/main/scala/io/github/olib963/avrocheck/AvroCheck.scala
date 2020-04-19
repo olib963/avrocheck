@@ -14,10 +14,10 @@ trait AvroCheck {
 
   /**
    * @param schema The avro schema to use to generate random values.
-   * @param configuration Allows configuration of default generation parameters e.g. the default [[Gen]] for [[String]] values.
+   * @param configuration Allows configuration of default generation parameters e.g. the default `Gen` for `String` values.
    * @param overrides Overrides can be used to customise the generation of arbitrarily nested values without affecting the
-   *                  generation of other values for example [[AvroCheck.overrideFields]]
-   * @return A generator that will create a [[GenericRecord]] from the schema as long as the schema is a RECORD or UNION of RECORDs.
+   *                  generation of other values for example see `AvroCheck.overrideFields`
+   * @return A generator that will create a `GenericRecord` from the schema as long as the schema is a RECORD or UNION of RECORDs.
    */
   def genFromSchema(schema: Schema, configuration: Configuration = Configuration.Default, overrides: Overrides = NoOverrides): Gen[GenericRecord] = schema.getType match {
     case Type.RECORD => recordGenerator(schema, configuration, overrides) match {
@@ -67,7 +67,7 @@ trait AvroCheck {
   def arrayOverride(elements: Seq[Overrides]): Overrides = ArrayOverrides(elements)
 
   /**
-   * @see [[AvroCheck.overrideFields]]
+   * See the overloaded `AvroCheck.overrideFields` function
    */
   def overrideFields(overrides: (String, Overrides)): Overrides = FieldOverrides(Map(overrides))
 

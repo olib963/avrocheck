@@ -17,7 +17,7 @@ object OverrideConfiguration extends Properties("Overriding generation") {
   property("Explicitly override primitive fields") = {
     val overrides = overrideFields( // Override fields in the record by name
       "name" -> constantOverride("oli"), // Always generate the string "oli" for "name"
-      "favourite_number" -> generatorOverride(Gen.posNum[Int].map(_ + 1)) // Always generate a positing Int for "favourite_number"
+      "favourite_number" -> generatorOverride(Gen.posNum[Int].map(_ + 1)) // Always generate a positive Int for "favourite_number"
     )
     forAll(genFromSchema(userSchema, overrides = overrides)) { record =>
       val namedOli = record.get("name") == "oli"
@@ -52,7 +52,7 @@ object OverrideConfiguration extends Properties("Overriding generation") {
     val fooOverrides = overrideFields("int" -> constantOverride(10))
     val overrides = selectNamedUnion(
       "Foo", // Selecting the specific "Foo" branch
-      overrides = fooOverrides // Within the foo branch we are setting overrides
+      overrides = fooOverrides // Within the "Foo" branch we are setting overrides
     )
     forAll(genFromSchema(unionSchema, overrides = overrides)) { record =>
       val correctSchema = record.getSchema.getName == "Foo"

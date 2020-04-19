@@ -7,9 +7,9 @@ import scala.reflect.ClassTag
 sealed trait Overrides
 
 private[avrocheck] object Overrides {
-  object NoOverrides extends Overrides
+  case object NoOverrides extends Overrides
   case class ConstantOverride(value: Any) extends Overrides
-  case class KeyOverrides(overrides: Map[String, Overrides]) extends Overrides
+  case class FieldOverrides(overrides: Map[String, Overrides]) extends Overrides
   case class SelectedUnion(branchName: String, overrides: Overrides) extends Overrides
 
   class GeneratorOverrides[A] private (val generator: Gen[A], val classTag: ClassTag[A]) extends Overrides {
@@ -22,9 +22,5 @@ private[avrocheck] object Overrides {
 
   case class ArrayGenerationOverrides(sizeGenerator: Gen[Int], elementOverrides: Overrides) extends Overrides
   case class ArrayOverrides(overrideList: Seq[Overrides]) extends Overrides
-
-  // TODO other possible overrides:
-  // - MapGenerationOverride: allow Gen[Int] for size, overrides to generate values, Gen[String] generate keys,
-  // - MapOverrides: Map[String, Overrides]
 }
 

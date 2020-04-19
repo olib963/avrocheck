@@ -47,17 +47,17 @@ object RecordWithUnionTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
       },
       test("should not let you select a type that doesn't exist in the union") {
         val intAsString = {
-          val overrides = overrideKeys("nullableInt" -> constantOverride("hello"))
+          val overrides = overrideFields("nullableInt" -> constantOverride("hello"))
           that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         }
         val stringOrLongAsBoolean = {
-          val overrides = overrideKeys("stringOrLong" -> constantOverride(false))
+          val overrides = overrideFields("stringOrLong" -> constantOverride(false))
           that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         }
         intAsString.and(stringOrLongAsBoolean)
       },
       test("Valid overrides, selecting a value for one branch of the union"){
-        val overrides = overrideKeys("nullableInt" -> constantOverride(12), "stringOrLong" -> constantOverride(123L))
+        val overrides = overrideFields("nullableInt" -> constantOverride(12), "stringOrLong" -> constantOverride(123L))
 
         val expectedUnionSelected = new RecordBuilder(schema)
           .set("nullableInt", 12)

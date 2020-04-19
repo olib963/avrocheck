@@ -15,9 +15,22 @@ object Implicits {
 
   import scala.language.implicitConversions
 
-  case class PreserialiseLogicalTypes(shouldPreserialise: Boolean)
+  case class PreserialiseLogicalTypes(shouldPreserialise: Boolean) extends AnyVal
+  /**
+   * Allows implicit configuration of whether or not logical types should be pre-serialised.
+   * @see [[Implicits.configFromArbitraries]]
+   */
   implicit def preserialiseConfig(shouldPreserialise: Boolean): PreserialiseLogicalTypes = PreserialiseLogicalTypes(shouldPreserialise)
 
+  /**
+   * Allows implicit configuration of default value generation to be used. For example:
+   * {{{
+   *   implicit val preserialise: PreserialiseLogicalTypes = true
+   *   implicit val alphaNumOnly: Arbitrary[String] = Arbitrary(gen.alphaNumStr)
+   *   // All logical types in this generator will be serialised to their primitives and only use alphanumeric strings
+   *   val gen: Gen[GenericRecord] = genFromSchemaImplicits(schema)
+   * }}}
+   */
   implicit def configFromArbitraries(implicit longArb: Arbitrary[Long],
                                      intArb: Arbitrary[Int],
                                      stringArb: Arbitrary[String],
@@ -47,8 +60,15 @@ object Implicits {
       preserialiseLogicalTypes = preserialiseLogicalTypes.shouldPreserialise
     )
 
+  /** @see [[AvroCheck.constantOverride]] */
   implicit def overrideFromConstant[A](value: A): Overrides = constantOverride(value)
+  /** @see [[AvroCheck.generatorOverride]] */
   implicit def overrideFromGenerator[A: ClassTag](gen: Gen[A]): Overrides = generatorOverride(gen)
+
+  /**
+   * Allows implicit definition of generation from schema.
+   * @see [[AvroCheck.genFromSchema]]
+   */
   def genFromSchemaImplicit(schema: Schema)(implicit configuration: Configuration, overrides: Overrides = NoOverrides): Gen[GenericRecord] =
     avrocheck.genFromSchema(schema, configuration, overrides)
 

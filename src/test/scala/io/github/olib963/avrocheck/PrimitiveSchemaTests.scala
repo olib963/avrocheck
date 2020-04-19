@@ -45,8 +45,7 @@ object PrimitiveSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
             .set("int", 8)
             .set("null", null)
             .build()
-          // TODO how to check bytes without override?
-          forAll(genFromSchema(schema, configuration, overrides = overrideKeys("bytes" -> constantOverride(bytes))))(
+          forAll(genFromSchema(schema, configuration, overrides = overrideFields("bytes" -> constantOverride(bytes))))(
             r => recordsShouldMatch(r, expectedRecord))
         }, invalidOverrideSuite) ++ validOverrideSuites
       )
@@ -81,20 +80,20 @@ object PrimitiveSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
   )
 
   private def invalidOverrideSuite = {
-    val missingFieldTest = test("you cannot override a key that doesn't exist") {
-      that(Try(genFromSchema(schema, overrides = overrideKeys("foo" -> constantOverride("bar")))), isFailure[Gen[GenericRecord]])
+    val missingFieldTest = test("you cannot override a field that doesn't exist") {
+      that(Try(genFromSchema(schema, overrides = overrideFields("foo" -> constantOverride("bar")))), isFailure[Gen[GenericRecord]])
     }
     val constantTests = suite("Invalid constant overrides", invalidConstants.map {
       case (key, value) =>
         test(s"Overriding schema field $key with $value") {
-          val overrides = overrideKeys(key -> constantOverride(value))
+          val overrides = overrideFields(key -> constantOverride(value))
           that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         }
     })
     val generatorTests = suite("Invalid generator overrides", invalidGenerators.map {
       case (key, o) =>
         test(s"Cannot override schema field $key with a generator of the wrong type") {
-          val overrides = overrideKeys(key -> o)
+          val overrides = overrideFields(key -> o)
           that(Try(genFromSchema(schema, overrides = overrides)), isFailure[Gen[GenericRecord]])
         }
     })
@@ -110,7 +109,6 @@ object PrimitiveSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
     ("int", 40, constantOverride(40)),
     ("null", null, constantOverride(null)))
 
-  // TODO move to JT?
   private def fail(reason: String): Assertion = () => AssertionResult.failure(reason)
 
   private def isBetween[A](min: A, max: A)(implicit ordering: Ordering[A]): Matcher[A] =
@@ -123,59 +121,59 @@ object PrimitiveSchemaTests extends SchemaGeneratorSuite with AllJavaTestSyntax 
     // Because byte arrays are wrapped we cannot use same method of testing
     val byteArrayTest = test(s"You can override byte arrays with a constant") {
       val bytes = Array[Byte](0, 1, 2)
-      val overrides = overrideKeys("bytes" -> constantOverride(bytes))
+      val overrides = overrideFields("bytes" -> constantOverride(bytes))
       forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("bytes"), isEqualTo[Object](ByteBuffer.wrap(bytes))))
     }
     Seq(
       suite("Valid constant overrides", byteArrayTest +: validConstants.map {
         case (key, value, o) =>
-          test(s"Should allow value $value for key $key") {
-            val overrides = overrideKeys(key -> o)
+          test(s"Should allow value $value for field $key") {
+            val overrides = overrideFields(key -> o)
             forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get(key), isEqualTo(value)))
           }
       }),
       suite("Valid generator overrides",
         test(s"Should allow a generator override for booleans") {
-          val overrides = overrideKeys("boolean" -> generatorOverride(Arbitrary.arbBool.arbitrary))
+          val overrides = overrideFields("boolean" -> generatorOverride(Arbitrary.arbBool.arbitrary))
           forAll(genFromSchema(schema, overrides = overrides))(r => that(r.get("boolean"), hasType[java.lang.Boolean]))
         },
         test(s"Should allow a generator override for doubles") {
-          val overrides = overrideKeys("double" -> generatorOverride(Gen.chooseNum[Double](10, 20)))
+          val overrides = overrideFields("double" -> generatorOverride(Gen.chooseNum[Double](10, 20)))
           forAll(genFromSchema(schema, overrides = overrides))(r => r.get("double") match {
             case d: java.lang.Double => that(Double.unbox(d), isBetween(10d, 20d))
             case other => fail(s"Expected $other to be a double")
           })
         },
         test(s"Should allow a generator override for floats") {
-          val overrides = overrideKeys("float" -> generatorOverride(Gen.chooseNum[Float](-20, -10)))
+          val overrides = overrideFields("float" -> generatorOverride(Gen.chooseNum[Float](-20, -10)))
           forAll(genFromSchema(schema, overrides = overrides))(r => r.get("float") match {
             case f: java.lang.Float => that(Float.unbox(f), isBetween(-20f, -10f))
             case other => fail(s"Expected $other to be a float")
           })
         },
         test(s"Should allow a generator override for longs") {
-          val overrides = overrideKeys("long" -> generatorOverride(Gen.negNum[Long]))
+          val overrides = overrideFields("long" -> generatorOverride(Gen.negNum[Long]))
           forAll(genFromSchema(schema, overrides = overrides))(r => r.get("long") match {
             case l: java.lang.Long => that(l, ComparableMatchers.isLessThan(Long.box(0)))
             case other => fail(s"Expected $other to be a long")
           })
         },
         test(s"Should allow a generator override for strings") {
-          val overrides = overrideKeys("string" -> generatorOverride(Gen.alphaLowerStr))
+          val overrides = overrideFields("string" -> generatorOverride(Gen.alphaLowerStr))
           forAll(genFromSchema(schema, overrides = overrides))(r => r.get("string") match {
             case s: String => that(s, isAlphanumeric)
             case other => fail(s"Expected $other to be a string")
           })
         },
         test(s"Should allow a generator override for byte arrays") {
-          val overrides = overrideKeys("bytes" -> generatorOverride(Gen.containerOfN[Array, Byte](4, Arbitrary.arbByte.arbitrary)))
+          val overrides = overrideFields("bytes" -> generatorOverride(Gen.containerOfN[Array, Byte](4, Arbitrary.arbByte.arbitrary)))
           forAll(genFromSchema(schema, overrides = overrides))(r => r.get("bytes") match {
             case b: ByteBuffer => that(b.array().toIterable, hasSize[Byte](4))
             case other => fail(s"Expected $other to be a byte buffer")
           })
         },
         test(s"Should allow a generator override for ints") {
-          val overrides = overrideKeys("int" -> generatorOverride(Gen.posNum[Int]))
+          val overrides = overrideFields("int" -> generatorOverride(Gen.posNum[Int]))
           forAll(genFromSchema(schema, overrides = overrides))(r => r.get("int") match {
             case i: java.lang.Integer => that(i, ComparableMatchers.isGreaterThan(Int.box(0)))
             case other => fail(s"Expected $other to be an int")

@@ -377,7 +377,7 @@ object OverrideConfiguration extends Properties("Overriding generation") {
     val fooOverrides = overrideFields("int" -> constantOverride(10))
     val overrides = selectNamedUnion(
       "Foo", // Selecting the specific "Foo" branch
-      overrides = fooOverrides // Within the foo branch we are setting overrides
+      overrides = fooOverrides // Within the "Foo" branch we are setting overrides
     )
     forAll(genFromSchema(unionSchema, overrides = overrides)) { record =>
       val correctSchema = record.getSchema.getName == "Foo"

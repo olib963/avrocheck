@@ -2,12 +2,12 @@
 
 --
 image::https://circleci.com/gh/olib963/avrocheck.svg?style=svg[link="https://circleci.com/gh/olib963/avrocheck", float="left"]
-image::https://img.shields.io/maven-central/v/io.github.olib963/avrocheck.svg?style=plastic[link="http://mvnrepository.com/artifact/io.github.olib963/avrocheck", float="left"]
+image::https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Folib963%2Favrocheck_2.13%2Fmaven-metadata.xml&style=plastic[link="https://mvnrepository.com/artifact/io.github.olib963/avrocheck", float="left"]
 --
 
 == What?
 
-A small library to generate random ``GenericRecord``s from a given https://avro.apache.org/[Avro] schema using https://www.scalacheck.org/[ScalaCheck].
+A small library to generate random ``GenericRecord``s from a given https://avro.apache.org/[Avro] schema using https://www.scalacheck.org/[ScalaCheck]. Available for both scala 2.13 and 2.12.
 
 == Why?
 

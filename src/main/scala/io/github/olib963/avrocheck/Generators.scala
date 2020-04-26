@@ -327,21 +327,23 @@ private [avrocheck] object Generators {
 
   private def toMicros(instant: Instant): Long = TimeUnit.MILLISECONDS.toMicros(instant.toEpochMilli)
 
+  private def indent(string: String) = "\t" + string
+
   sealed trait AvroCheckError { def errorMessages: Seq[String] }
   case class SimpleError(error: String) extends AvroCheckError {
     override def errorMessages: Seq[String] = Seq(error)
   }
   case class ComposedError(error: String, cause: AvroCheckError, prefixErrors: Boolean = false) extends AvroCheckError {
-    override def errorMessages: Seq[String] = error +: cause.errorMessages.map("\t" + _)
+    override def errorMessages: Seq[String] = error +: cause.errorMessages.map(indent)
   }
   case class FieldError(field: String, cause: AvroCheckError) extends AvroCheckError {
-    override def errorMessages: Seq[String] = s"Could not create generator for field: $field" +: cause.errorMessages.map("\t" + _)
+    override def errorMessages: Seq[String] = s"Could not create generator for field: $field" +: cause.errorMessages.map(indent)
   }
   case class RecordFailure(schema: Schema, errors: Seq[AvroCheckError]) extends AvroCheckError {
-    override def errorMessages: Seq[String] = s"Could not create generator for record: ${schema.getFullName}" +: errors.flatMap(_.errorMessages).map("\t" + _)
+    override def errorMessages: Seq[String] = s"Could not create generator for record: ${schema.getFullName}" +: errors.flatMap(_.errorMessages).map(indent)
   }
   case class UnionFailure(schemas: Seq[Schema], errors: Seq[AvroCheckError])extends AvroCheckError {
-    override def errorMessages: Seq[String] = s"Could not create generator for Union: ${schemas.map(_.getFullName).mkString(", ")}" +: errors.flatMap(_.errorMessages).map("\t" + _)
+    override def errorMessages: Seq[String] = s"Could not create generator for Union: ${schemas.map(_.getFullName).mkString(", ")}" +: errors.flatMap(_.errorMessages).map(indent)
   }
 
 }

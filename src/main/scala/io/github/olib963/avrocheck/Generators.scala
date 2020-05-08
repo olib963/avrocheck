@@ -5,7 +5,7 @@ import java.time.{Instant, LocalDate, LocalTime}
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import io.github.olib963.avrocheck.Overrides.{ArrayGenerationOverrides, ArrayOverrides, ConstantOverride, GeneratorOverrides, FieldOverrides, NoOverrides, SelectedUnion}
+import io.github.olib963.avrocheck.Overrides._
 import org.apache.avro.Conversions.DecimalConversion
 import org.apache.avro.LogicalTypes.{Date, Decimal, TimeMicros, TimeMillis, TimestampMicros, TimestampMillis}
 import org.apache.avro.{LogicalTypes, Schema}
@@ -18,7 +18,7 @@ import org.scalacheck.util.Buildable
 import scala.math.BigDecimal.RoundingMode
 import scala.reflect.classTag
 
-private [avrocheck] object Generators {
+private[avrocheck] object Generators {
 
   private type AttemptedGen[A] = Either[AvroCheckError, Gen[A]]
 
@@ -220,14 +220,33 @@ private [avrocheck] object Generators {
       .left.map(ComposedError("Could not create a list generator", _))
   }
 
-  private def mapGenerator(schema: Schema, configuration: Configuration, overrides: Overrides): AttemptedGen[java.util.Map[String, Any]] =
-    generatorFromSchema(schema.getValueType, configuration, overrides).map { valueGenerator =>
-      val entryGen = for {
-        key <- configuration.stringGen
-        value <- valueGenerator
-      } yield key -> value
-      Gen.mapOf(entryGen).map(CollectionConverters.toJava(_: Map[String, Any]))
-    }.left.map(ComposedError("Could not create generator for values in the map", _))
+  private def mapGenerator(schema: Schema, configuration: Configuration, overrides: Overrides): AttemptedGen[java.util.Map[String, Any]] = {
+    val mapGenerator: AttemptedGen[Map[String, Any]] = overrides match {
+      case MapGenerationOverrides(sizeGenerator, keyGenerator, valueOverrides) =>
+        generatorFromSchema(schema.getValueType, configuration, valueOverrides).map(valueGenerator =>
+          for {
+            size <- sizeGenerator
+            map <- Gen.mapOfN(size, tupleGenerator(keyGenerator, valueGenerator))
+          } yield map
+        )
+      case MapOverrides(overrideMap) =>
+        val sequencedEntries = eitherSequence(overrideMap.toSeq.map{ case (key, valueOverrides) =>
+          generatorFromSchema(schema.getValueType, configuration, valueOverrides).map(_.map(value => (key, value))): AttemptedGen[(String, Any)]
+        })
+        sequencedEntries.map(Gen.sequence(_))
+          .map(_.map(CollectionConverters.toScala).map(_.toMap))
+      case valueOverrides => generatorFromSchema(schema.getValueType, configuration, valueOverrides).map(valueGenerator =>
+        Gen.mapOf(tupleGenerator(configuration.stringGen, valueGenerator))
+      )
+    }
+    mapGenerator.map(_.map(CollectionConverters.toJava(_: Map[String, Any])))
+      .left.map(ComposedError("Could not create generator for values in the map", _))
+  }
+
+  private def tupleGenerator[A, B](keyGen: Gen[A], valueGen: Gen[B]): Gen[(A, B)] = for {
+    key <- keyGen
+    value <- valueGen
+  } yield key -> value
 
   def unionGenerator(schema: Schema, configuration: Configuration, overrides: Overrides): AttemptedGen[Any] =
     overrides match {
@@ -252,8 +271,8 @@ private [avrocheck] object Generators {
           generatorFromSchema(schema, configuration, other)
             .left.map(ComposedError(s"Could not create generator for union branch: ${schema.getFullName}", _))
         }.toList
-        val gens = results.collect{ case Right(gen) => gen }
-        val errors = results.collect{ case Left(error) => error }
+        val gens = results.collect { case Right(gen) => gen }
+        val errors = results.collect { case Left(error) => error }
         gens match {
           case g :: Nil => Right(g) // Only one generator matches override
           case Nil => Left(UnionFailure(CollectionConverters.toScala(schema.getTypes), errors))
@@ -284,9 +303,9 @@ private [avrocheck] object Generators {
           .map(_.map(field.name() -> _))
           .left.map(error => FieldError(field.name(), error))
         )
-      val errors = fieldGens.collect{ case Left(error) => error }
-      val generators = fieldGens.collect{ case Right(gen) => gen }
-      if(errors.nonEmpty) Left(RecordFailure(schema, errors)) else Right(Gen.sequence(generators)(RecordBuildable(schema)))
+      val errors = fieldGens.collect { case Left(error) => error }
+      val generators = fieldGens.collect { case Right(gen) => gen }
+      if (errors.nonEmpty) Left(RecordFailure(schema, errors)) else Right(Gen.sequence(generators)(RecordBuildable(schema)))
     }
   }
 
@@ -310,7 +329,7 @@ private [avrocheck] object Generators {
   }
 
   private def absoluteCap(bigDecimal: BigDecimal, cap: BigDecimal): BigDecimal =
-    if(cap < bigDecimal.abs) cap * bigDecimal.signum else bigDecimal
+    if (cap < bigDecimal.abs) cap * bigDecimal.signum else bigDecimal
 
   // The following functions drop extra unused precision such that a round trip of serialise -> deserialise gives the same value
   private def timeMillis(localTime: LocalTime): LocalTime = {
@@ -342,7 +361,7 @@ private [avrocheck] object Generators {
   case class RecordFailure(schema: Schema, errors: Seq[AvroCheckError]) extends AvroCheckError {
     override def errorMessages: Seq[String] = s"Could not create generator for record: ${schema.getFullName}" +: errors.flatMap(_.errorMessages).map(indent)
   }
-  case class UnionFailure(schemas: Seq[Schema], errors: Seq[AvroCheckError])extends AvroCheckError {
+  case class UnionFailure(schemas: Seq[Schema], errors: Seq[AvroCheckError]) extends AvroCheckError {
     override def errorMessages: Seq[String] = s"Could not create generator for Union: ${schemas.map(_.getFullName).mkString(", ")}" +: errors.flatMap(_.errorMessages).map(indent)
   }
 

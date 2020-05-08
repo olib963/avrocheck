@@ -5,7 +5,7 @@ import io.github.olib963.avrocheck.Generators._
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Type
 import org.apache.avro.generic.GenericRecord
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
 
 import scala.io.Source
 import scala.reflect.ClassTag
@@ -65,6 +65,25 @@ trait AvroCheck {
    * - Uses the overrides in elements in order to generate each element of the array.
    */
   def arrayOverride(elements: Seq[Overrides]): Overrides = ArrayOverrides(elements)
+
+  /**
+   * Customise the generation of a map value for a schema of type "map"
+   *
+   * @param sizeGenerator Generates the size of the map. This must be positive (currently not enforced so will cause errors)
+   * @param keyGenerator Generator to be used to generate keys for the map.
+   * @param valueOverrides overrides to use for each value in the generated map.
+   */
+  def mapGenerationOverride(sizeGenerator: Gen[Int] = Gen.posNum[Int],
+                            keyGenerator: Gen[String] = Arbitrary.arbString.arbitrary,
+                            valueOverrides: Overrides = NoOverrides): Overrides = MapGenerationOverrides(sizeGenerator, keyGenerator, valueOverrides)
+
+  /**
+   * Overrides map generation to create a map that:
+   * - Has the exact size as overrides
+   * - Uses the same keys in overrides to generate the map
+   * - Uses each Override to generate the associated value
+   */
+  def mapOverride(overrides: Map[String, Overrides]): Overrides = MapOverrides(overrides)
 
   /**
    * See the overloaded `AvroCheck.overrideFields` function

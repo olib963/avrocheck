@@ -22,5 +22,8 @@ private[avrocheck] object Overrides {
 
   case class ArrayGenerationOverrides(sizeGenerator: Gen[Int], elementOverrides: Overrides) extends Overrides
   case class ArrayOverrides(overrideList: Seq[Overrides]) extends Overrides
+
+  case class MapGenerationOverrides(sizeGenerator: Gen[Int], keyGenerator: Gen[String], valueOverrides: Overrides) extends Overrides
+  case class MapOverrides(overrideMap: Map[String, Overrides]) extends Overrides
 }
 

@@ -66,9 +66,16 @@ trait AvroCheck {
    */
   def arrayOverride(elements: Seq[Overrides]): Overrides = ArrayOverrides(elements)
 
+  /**
+   * Customise the generation of a map value for a schema of type "map"
+   *
+   * @param sizeGenerator Generates the size of the map. This must be positive (currently not enforced so will cause errors)
+   * @param keyGenerator Generator to be used to generate keys for the map.
+   * @param valueOverrides overrides to use for each value in the generated map.
+   */
   def mapGenerationOverride(sizeGenerator: Gen[Int] = Gen.posNum[Int],
                             keyGenerator: Gen[String] = Arbitrary.arbString.arbitrary,
-                            valueOverrides: Overrides = NoOverrides): Overrides = NoOverrides
+                            valueOverrides: Overrides = NoOverrides): Overrides = MapGenerationOverrides(sizeGenerator, keyGenerator, valueOverrides)
 
   def mapOverride(overrides: Map[String, Overrides]): Overrides = NoOverrides
 

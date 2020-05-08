@@ -5,7 +5,7 @@ import io.github.olib963.avrocheck.Generators._
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Type
 import org.apache.avro.generic.GenericRecord
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
 
 import scala.io.Source
 import scala.reflect.ClassTag
@@ -65,6 +65,12 @@ trait AvroCheck {
    * - Uses the overrides in elements in order to generate each element of the array.
    */
   def arrayOverride(elements: Seq[Overrides]): Overrides = ArrayOverrides(elements)
+
+  def mapGenerationOverride(sizeGenerator: Gen[Int] = Gen.posNum[Int],
+                            keyGenerator: Gen[String] = Arbitrary.arbString.arbitrary,
+                            valueOverrides: Overrides = NoOverrides): Overrides = NoOverrides
+
+  def mapOverride(overrides: Map[String, Overrides]): Overrides = NoOverrides
 
   /**
    * See the overloaded `AvroCheck.overrideFields` function

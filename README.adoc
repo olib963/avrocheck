@@ -325,9 +325,9 @@ If you want to customise the generation of your `GenericRecord` even more you ca
 ----
 package io.github.olib963.avrocheck.documentation
 
-import io.github.olib963.avrocheck.CollectionConverters.toScala
+import io.github.olib963.avrocheck.CollectionConverters._
 import org.scalacheck.Prop.forAll
-import org.scalacheck.{Gen, Properties}
+import org.scalacheck.{Arbitrary, Gen, Properties}
 import io.github.olib963.avrocheck._
 
 object OverrideConfiguration extends Properties("Overriding generation") {
@@ -420,6 +420,47 @@ object OverrideConfiguration extends Properties("Overriding generation") {
     }
   }
 
+  //******************//
+  //  Map Overides  //
+  //******************//
+
+  // Contains a field called "stringMap" with schema {"type": "map", "values": "string"}
+  private val mapSchema = schemaFromResource("record-with-composites.avsc")
+
+  property("Override map generation") = {
+    val oneToFourSixLetteredStringsWithNumericKeys = mapGenerationOverride(
+      sizeGenerator = Gen.choose(1, 4),
+      keyGenerator = Gen.numStr,
+      generatorOverride(Gen.listOfN(6, Arbitrary.arbChar.arbitrary).map(_.mkString))
+    )
+    val overrides = overrideFields("stringMap" -> oneToFourSixLetteredStringsWithNumericKeys)
+    forAll(genFromSchema(mapSchema, overrides = overrides)) { r =>
+      val map = toScalaMap(r.get("stringMap").asInstanceOf[java.util.Map[String, String]])
+      val valueAssertion = map.values.forall(_.length == 6) // All values should have length 6
+      val keyAssertion = map.keys.forall(_.toCharArray.forall(Character.isDigit)) // All keys should be numeric strings
+      val sizeAssertion = map.size >= 1 && map.size <= 4
+      sizeAssertion && keyAssertion && valueAssertion
+    }
+  }
+
+  property("Explicitly override each entry in the map") = {
+    val alphaStringThenBaz = mapOverride(Map(
+      "foo" -> generatorOverride(Gen.alphaStr),
+      "bar" -> constantOverride("baz")
+    ))
+    val overrides = overrideFields("stringMap" -> alphaStringThenBaz)
+    forAll(genFromSchema(mapSchema, overrides = overrides)) { r =>
+      val map = toScalaMap(r.get("stringMap").asInstanceOf[java.util.Map[String, String]])
+      // The key foo should map to a string that only contains characters
+      val fooAssertion = map.get("foo").exists(_.forall(Character.isLetter))
+
+      // The key bar should map to "baz"
+      val barAssertion = map.get("bar").contains("baz")
+
+      val sizeAssertion = map.size == 2
+      sizeAssertion && fooAssertion && barAssertion
+    }
+  }
 }
 ----
 

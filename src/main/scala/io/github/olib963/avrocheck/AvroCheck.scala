@@ -77,7 +77,13 @@ trait AvroCheck {
                             keyGenerator: Gen[String] = Arbitrary.arbString.arbitrary,
                             valueOverrides: Overrides = NoOverrides): Overrides = MapGenerationOverrides(sizeGenerator, keyGenerator, valueOverrides)
 
-  def mapOverride(overrides: Map[String, Overrides]): Overrides = NoOverrides
+  /**
+   * Overrides map generation to create a map that:
+   * - Has the exact size as overrides
+   * - Uses the same keys in overrides to generate the map
+   * - Uses each Override to generate the associated value
+   */
+  def mapOverride(overrides: Map[String, Overrides]): Overrides = MapOverrides(overrides)
 
   /**
    * See the overloaded `AvroCheck.overrideFields` function

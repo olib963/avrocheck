@@ -229,6 +229,12 @@ private[avrocheck] object Generators {
             map <- Gen.mapOfN(size, tupleGenerator(keyGenerator, valueGenerator))
           } yield map
         )
+      case MapOverrides(overrideMap) =>
+        val sequencedEntries = eitherSequence(overrideMap.toSeq.map{ case (key, valueOverrides) =>
+          generatorFromSchema(schema.getValueType, configuration, valueOverrides).map(_.map(value => (key, value))): AttemptedGen[(String, Any)]
+        })
+        sequencedEntries.map(Gen.sequence(_))
+          .map(_.map(CollectionConverters.toScala).map(_.toMap))
       case valueOverrides => generatorFromSchema(schema.getValueType, configuration, valueOverrides).map(valueGenerator =>
         Gen.mapOf(tupleGenerator(configuration.stringGen, valueGenerator))
       )
